@@ -1483,10 +1483,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@usebridge/api@npm:0.0.17, @usebridge/api@npm:>=0.0.17":
-  version: 0.0.17
-  resolution: "@usebridge/api@npm:0.0.17"
-  checksum: 10c0/d4debecb710013aebff3ce6419b04c420b9f49a27ddcedba6e196c86ebb8957e2ec94fd082addf55e92b926df19e1deb71edfd0206b92c6abd2c4c58ae9552d6
+"@usebridge/api@npm:0.0.18, @usebridge/api@npm:>=0.0.18":
+  version: 0.0.18
+  resolution: "@usebridge/api@npm:0.0.18"
+  checksum: 10c0/25abf23f25534c8ff0c30dd3a7ae7ebf8713a499ae1198afced60b9ad91fdf07d2bb1e7b556d1508816b052e85057b8ce2116ea31df68c8dcb6b88e4e5f98f40
   languageName: node
   linkType: hard
 
@@ -1494,10 +1494,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@usebridge/sdk-core@workspace:packages/core"
   dependencies:
-    "@usebridge/api": "npm:>=0.0.17"
+    "@usebridge/api": "npm:>=0.0.18"
     uuid: "npm:^11.1.0"
   peerDependencies:
-    "@usebridge/api": ">=0.0.17"
+    "@usebridge/api": ">=0.0.18"
   languageName: unknown
   linkType: soft
 
@@ -1505,10 +1505,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@usebridge/sdk-react@workspace:packages/react"
   dependencies:
-    "@usebridge/api": "npm:>=0.0.17"
+    "@usebridge/api": "npm:>=0.0.18"
     "@usebridge/sdk-core": "workspace:^"
   peerDependencies:
-    "@usebridge/api": ">=0.0.17"
+    "@usebridge/api": ">=0.0.18"
     react: ">=18 <20"
     react-dom: ">=18 <20"
   languageName: unknown
@@ -3676,7 +3676,7 @@ __metadata:
     "@mui/icons-material": "npm:^7.3.1"
     "@mui/material": "npm:^7.3.1"
     "@types/react": "npm:^19.1.10"
-    "@usebridge/api": "npm:0.0.17"
+    "@usebridge/api": "npm:0.0.18"
     "@usebridge/sdk-core": "workspace:*"
     "@usebridge/sdk-react": "workspace:*"
     envalid: "npm:^8.1.0"

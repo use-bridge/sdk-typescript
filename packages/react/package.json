@@ -34,12 +34,12 @@
     "@usebridge/sdk-core": "workspace:^"
   },
   "peerDependencies": {
-    "@usebridge/api": ">=0.0.17",
+    "@usebridge/api": ">=0.0.18",
     "react": ">=18 <20",
     "react-dom": ">=18 <20"
   },
   "devDependencies": {
-    "@usebridge/api": ">=0.0.17"
+    "@usebridge/api": ">=0.0.18"
   },
   "publishConfig": {
     "access": "public"

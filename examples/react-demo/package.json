@@ -15,7 +15,7 @@
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.1",
     "@mui/material": "^7.3.1",
-    "@usebridge/api": "0.0.17",
+    "@usebridge/api": "0.0.18",
     "@usebridge/sdk-core": "workspace:*",
     "@usebridge/sdk-react": "workspace:*",
     "envalid": "^8.1.0",

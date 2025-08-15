@@ -31,10 +31,10 @@
     "clean": "rimraf dist"
   },
   "peerDependencies": {
-    "@usebridge/api": ">=0.0.17"
+    "@usebridge/api": ">=0.0.18"
   },
   "devDependencies": {
-    "@usebridge/api": ">=0.0.17"
+    "@usebridge/api": ">=0.0.18"
   },
   "publishConfig": {
     "access": "public"

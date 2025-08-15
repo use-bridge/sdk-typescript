@@ -3,11 +3,11 @@
 import { Stack, Typography } from "@mui/material"
 import { PayerAutocompleteField } from "../components/payer-autocomplete-field"
 import { useState } from "react"
-import { Bridge } from "@usebridge/api"
+import { BridgeApi } from "@usebridge/api"
 import { PageHeader } from "../components/page-header"
 
 export default function Page() {
-  const [payer, setPayer] = useState<Bridge.SearchPayerV1ResponseItems | null>(null)
+  const [payer, setPayer] = useState<BridgeApi.SearchPayerV1ResponseItem | null>(null)
 
   return (
     <Stack sx={{ p: 4 }} spacing={4}>

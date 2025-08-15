@@ -3,23 +3,23 @@
 import { useEffect, useState } from "react"
 import { Autocomplete, CircularProgress, TextField } from "@mui/material"
 import { usePayerAutocomplete } from "@usebridge/sdk-react"
-import { Bridge } from "@usebridge/api"
+import { BridgeApi } from "@usebridge/api"
 
 interface PayerAutocompleteFieldProps {
-  onPayerChange: (payer: Bridge.SearchPayerV1ResponseItems | null) => void
+  onPayerChange: (payer: BridgeApi.SearchPayerV1ResponseItem | null) => void
 }
 
 export const PayerAutocompleteField = ({ onPayerChange }: PayerAutocompleteFieldProps) => {
   const [inputValue, setInputValue] = useState("")
   const { results, isLoading } = usePayerAutocomplete(inputValue, { limit: 50 })
-  const [value, setValue] = useState<Bridge.SearchPayerV1ResponseItems | null>(null)
+  const [value, setValue] = useState<BridgeApi.SearchPayerV1ResponseItem | null>(null)
 
   useEffect(() => {
     onPayerChange(value)
   }, [onPayerChange, value])
 
   return (
-    <Autocomplete<Bridge.SearchPayerV1ResponseItems>
+    <Autocomplete<BridgeApi.SearchPayerV1ResponseItem>
       loading={isLoading}
       options={results}
       value={value}

@@ -7,7 +7,7 @@ import {
   HardEligibilitySession,
   type HardEligibilitySessionConfig,
 } from "./hard-eligibility-session/index.js"
-import { Bridge, BridgeClient } from "@usebridge/api"
+import { BridgeApi, BridgeApiClient } from "@usebridge/api"
 
 function getClientEnvironment(environment: string): string {
   switch (environment) {
@@ -24,10 +24,10 @@ function getClientEnvironment(environment: string): string {
  * The BridgeSdk is the main entry point for configuring and using @usebridge/usebridge-core
  */
 export class BridgeSdk {
-  #client: BridgeClient
+  #client: BridgeApiClient
 
   constructor(private readonly config: BridgeSdkConfig) {
-    this.#client = new BridgeClient({
+    this.#client = new BridgeApiClient({
       apiKey: config.publishableKey,
       environment: getClientEnvironment(config.environment ?? "production"),
     })
@@ -44,7 +44,7 @@ export class BridgeSdk {
   }: {
     query: string
     limit?: number
-  }): Promise<Bridge.SearchPayerV1Response> {
+  }): Promise<BridgeApi.SearchPayerV1Response> {
     return this.#client.search.payerSearch({ query, limit: limit ?? 10 })
   }
 
