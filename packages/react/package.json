@@ -34,8 +34,8 @@
     "@usebridge/sdk-core": "workspace:^"
   },
   "peerDependencies": {
-    "react": ">=18",
-    "react-dom": ">=18"
+    "react": ">=18 <20",
+    "react-dom": ">=18 <20"
   },
   "publishConfig": {
     "access": "public"

@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    reactStrictMode: true
+  reactStrictMode: true,
+  transpilePackages: ["@usebridge/sdk-react"],
 }
 export default nextConfig

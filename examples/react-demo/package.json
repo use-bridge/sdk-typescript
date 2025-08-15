@@ -11,6 +11,10 @@
     "clean": "rimraf .next"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.3.1",
+    "@mui/material": "^7.3.1",
     "@usebridge/sdk-core": "workspace:*",
     "@usebridge/sdk-react": "workspace:*",
     "eventemitter3": "^5.0.1",

@@ -30,5 +30,8 @@
     "tsup": "^8.2.4",
     "turbo": "^2.5.5",
     "typescript": "^5.5.4"
+  },
+  "dependencies": {
+    "usehooks-ts": "^3.1.1"
   }
 }
