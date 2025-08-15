@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useIsMounted } from "usehooks-ts"
-import { useBridgeSdk } from "./use-bridge-sdk.js"
 import { retryLoop, RetryLoopCancelledError } from "../lib/retry-forever.js"
+import { usePayerSearch } from "./use-payer-search.js"
 
 // TODO Replace this with the generated API Client type for the PayerAutocomplete result
 type ApiClientPayerSearchResult = {
@@ -39,7 +39,7 @@ export function usePayerAutocomplete(
   results: ReadonlyArray<ApiClientPayerSearchResult>
 } {
   // We expect a 'BridgeSdk' to be available in the context
-  const bridgeSdk = useBridgeSdk()
+  const payerSearch = usePayerSearch()
 
   // TODO Hardcode the empty query results
 
@@ -75,7 +75,7 @@ export function usePayerAutocomplete(
       try {
         // Run the search on a loop, until it resolves, or we unmount/move on
         const response = await retryLoop(
-          () => bridgeSdk.payerSearch({ query: normalizedQuery, limit }),
+          () => payerSearch({ query: normalizedQuery, limit }),
           () => isMounted() && thisId === reqId.current,
         )
 
@@ -99,7 +99,7 @@ export function usePayerAutocomplete(
     }
 
     void run()
-  }, [bridgeSdk, normalizedQuery, limit])
+  }, [payerSearch, normalizedQuery, limit])
 
   // Memoize what we return here
   return useMemo(() => ({ isLoading, results }), [isLoading, results])

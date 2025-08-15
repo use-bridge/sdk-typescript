@@ -13,4 +13,9 @@ export interface BridgeSdkConfig {
    * Logger implementation
    */
   logger?: Logger
+
+  /**
+   * Environment to use, defaults to "production"
+   */
+  environment?: "production" | "sandbox" | string
 }

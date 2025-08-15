@@ -37,7 +37,7 @@ export default function MuiProviders({ children }: { children: React.ReactNode }
   useServerInsertedHTML(() => {
     const names = flush()
     if (names.length === 0) return null
-    const css = names.map((n) => (cache.inserted as any)[n]).join("")
+    const css = names.map((n) => cache.inserted[n]).join("")
     return (
       <style
         data-emotion={`${cache.key} ${names.join(" ")}`}

@@ -7,38 +7,45 @@ import {
   HardEligibilitySession,
   type HardEligibilitySessionConfig,
 } from "./hard-eligibility-session/index.js"
+import { Bridge, BridgeClient } from "@usebridge/api"
 
-// TODO This should be the result of the PayerSearch API, exposed from the generated Bridge API SDK
-type ApiClientPayerSearchResponse = { items: { id: string; name: string }[] }
+function getClientEnvironment(environment: string): string {
+  switch (environment) {
+    case "production":
+      return "https://app.usebridge.com"
+    case "sandbox":
+      return "https://app.usebridge.xyz"
+    default:
+      return environment
+  }
+}
 
 /**
  * The BridgeSdk is the main entry point for configuring and using @usebridge/usebridge-core
  */
 export class BridgeSdk {
-  constructor(private readonly config: BridgeSdkConfig) {}
+  #client: BridgeClient
+
+  constructor(private readonly config: BridgeSdkConfig) {
+    this.#client = new BridgeClient({
+      apiKey: config.publishableKey,
+      environment: getClientEnvironment(config.environment ?? "production"),
+    })
+  }
 
   /**
    * Runs a Payer search against the Bridge API
    * @param query the query, may be an empty string
    * @param limit the maximum number of results to return, defaults to 10
    */
-  async payerSearch(args: {
+  async payerSearch({
+    query,
+    limit,
+  }: {
     query: string
     limit?: number
-  }): Promise<ApiClientPayerSearchResponse> {
-    // TODO Implement the real API call
-    await new Promise((resolve) => setTimeout(resolve, 200))
-    return {
-      items: [
-        { id: "1", name: `Payer ${args.query} 1` },
-        { id: "2", name: `Payer ${args.query} 2` },
-        { id: "3", name: `Payer ${args.query} 3` },
-        { id: "4", name: `Payer ${args.query} 4` },
-        { id: "5", name: `Payer ${args.query} 5` },
-      ]
-        .filter((item) => item.name.toLowerCase().includes(args.query.toLowerCase()))
-        .slice(0, args.limit ?? 10),
-    }
+  }): Promise<Bridge.SearchPayerV1Response> {
+    return this.#client.search.payerSearch({ query, limit: limit ?? 10 })
   }
 
   /**
