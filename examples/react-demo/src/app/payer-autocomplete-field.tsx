@@ -1,17 +1,25 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Autocomplete, CircularProgress, TextField } from "@mui/material"
 import { usePayerAutocomplete } from "@usebridge/sdk-react"
+import { Bridge } from "@usebridge/api"
 
-export const PayerAutocompleteField = () => {
+interface PayerAutocompleteFieldProps {
+  onPayerChange: (payer: Bridge.SearchPayerV1ResponseItems | null) => void
+}
+
+export const PayerAutocompleteField = ({ onPayerChange }: PayerAutocompleteFieldProps) => {
   const [inputValue, setInputValue] = useState("")
   const { results, isLoading } = usePayerAutocomplete(inputValue, { limit: 10 })
-  type Payer = (typeof results)[number]
-  const [value, setValue] = useState<Payer | null>(null)
+  const [value, setValue] = useState<Bridge.SearchPayerV1ResponseItems | null>(null)
+
+  useEffect(() => {
+    onPayerChange(value)
+  }, [onPayerChange, value])
 
   return (
-    <Autocomplete<Payer>
+    <Autocomplete<Bridge.SearchPayerV1ResponseItems>
       loading={isLoading}
       options={results}
       value={value}

@@ -2,16 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useIsMounted } from "usehooks-ts"
 import { retryLoop, RetryLoopCancelledError } from "../lib/retry-forever.js"
 import { usePayerSearch } from "./use-payer-search.js"
-
-// TODO Replace this with the generated API Client type for the PayerAutocomplete result
-type ApiClientPayerSearchResult = {
-  id: string
-  name: string
-}
+import { Bridge } from "@usebridge/api"
 
 // We'll store these locally, they won't change within a user session
-// TODO We can pre-populate with BUCA results
-const resultCache = new Map<string, ApiClientPayerSearchResult[]>()
+const resultCache = new Map<string, Bridge.SearchPayerV1ResponseItems[]>()
 
 /**
  * Providers autocomplete functionality for the Payer search
@@ -36,7 +30,7 @@ export function usePayerAutocomplete(
   /**
    * The results to display currently
    */
-  results: ReadonlyArray<ApiClientPayerSearchResult>
+  results: ReadonlyArray<Bridge.SearchPayerV1ResponseItems>
 } {
   // We expect a 'BridgeSdk' to be available in the context
   const payerSearch = usePayerSearch()
@@ -45,7 +39,7 @@ export function usePayerAutocomplete(
 
   // Track the state
   const [isLoading, setIsLoading] = useState(false)
-  const [results, setResults] = useState<ApiClientPayerSearchResult[]>([])
+  const [results, setResults] = useState<Bridge.SearchPayerV1ResponseItems[]>([])
 
   // We don't need to run again if it's just whitespace
   const normalizedQuery = query.trim().toLowerCase()
