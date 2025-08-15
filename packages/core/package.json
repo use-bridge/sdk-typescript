@@ -1,0 +1,38 @@
+{
+  "name": "@usebridge/sdk-core",
+  "version": "0.0.0",
+  "description": "Headless core SDK for Bridge - framework-agnostic",
+  "license": "MIT",
+  "sideEffects": false,
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean",
+    "dev": "tsup src/index.ts --format esm,cjs --dts --sourcemap --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "echo \"(no tests)\"",
+    "clean": "rimraf dist"
+  },
+  "peerDependencies": {
+    "@usebridge/api": ">=0.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

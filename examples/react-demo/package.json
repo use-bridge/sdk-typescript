@@ -1,0 +1,25 @@
+{
+  "name": "react-demo",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rimraf .next"
+  },
+  "dependencies": {
+    "@usebridge/sdk-core": "workspace:*",
+    "@usebridge/sdk-react": "workspace:*",
+    "eventemitter3": "^5.0.1",
+    "next": "14.2.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "swr": "^2.2.5"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.10"
+  }
+}

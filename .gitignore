@@ -1,0 +1,21 @@
+# IDE
+.idea
+.vscode
+
+# node/yarn
+node_modules
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# builds
+dist
+.next
+.turbo
+coverage
+
+# misc
+.DS_Store
