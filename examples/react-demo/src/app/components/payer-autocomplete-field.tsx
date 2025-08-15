@@ -11,7 +11,7 @@ interface PayerAutocompleteFieldProps {
 
 export const PayerAutocompleteField = ({ onPayerChange }: PayerAutocompleteFieldProps) => {
   const [inputValue, setInputValue] = useState("")
-  const { results, isLoading } = usePayerAutocomplete(inputValue, { limit: 10 })
+  const { results, isLoading } = usePayerAutocomplete(inputValue, { limit: 50 })
   const [value, setValue] = useState<Bridge.SearchPayerV1ResponseItems | null>(null)
 
   useEffect(() => {

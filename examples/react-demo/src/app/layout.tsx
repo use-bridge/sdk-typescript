@@ -1,6 +1,7 @@
 import React from "react"
-import MuiProviders from "./mui-providers"
-import { BridgeProvider } from "./bridge-provider"
+import MuiProviders from "./components/mui-providers"
+import { BridgeProvider } from "./components/bridge-provider"
+import { PageLayout } from "./components/page-layout"
 
 export const metadata = {
   title: "Bridge SDK Demo",
@@ -12,7 +13,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         <BridgeProvider>
-          <MuiProviders>{children}</MuiProviders>
+          <MuiProviders>
+            <PageLayout>{children}</PageLayout>
+          </MuiProviders>
         </BridgeProvider>
       </body>
     </html>
