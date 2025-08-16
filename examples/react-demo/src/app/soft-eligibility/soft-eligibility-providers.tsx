@@ -1,6 +1,9 @@
 import { useSoftEligibilityState } from "@usebridge/sdk-react"
 import { List, ListItem, ListItemText, Stack, Typography } from "@mui/material"
 
+/**
+ * Renders the list of eligible Providers in this session
+ */
 export const SoftEligibilityEligibleProviderList = () => {
   const { providers } = useSoftEligibilityState()
 

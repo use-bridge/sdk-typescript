@@ -6,6 +6,10 @@ import { BridgeApi } from "@usebridge/api"
 import { StatePicker } from "../components/state-picker"
 import { useSoftEligibilityState, useSoftEligibilitySubmit } from "@usebridge/sdk-react"
 
+/**
+ * Basic user input for the Soft Eligibility request
+ * Submits the request
+ */
 export const SoftEligibilitySessionExample: FC = () => {
   const sessionState = useSoftEligibilityState()
   const submit = useSoftEligibilitySubmit()
