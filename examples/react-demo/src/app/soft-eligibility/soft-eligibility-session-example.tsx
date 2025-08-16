@@ -1,6 +1,6 @@
 import { type UsStateCode } from "@usebridge/sdk-core"
 import { type FC, useCallback, useState } from "react"
-import { Button, List, ListItem, ListItemText, Stack, Typography } from "@mui/material"
+import { Button, Stack, Typography } from "@mui/material"
 import { PayerAutocompleteField } from "../components/payer-autocomplete-field"
 import { BridgeApi } from "@usebridge/api"
 import { StatePicker } from "../components/state-picker"
@@ -25,7 +25,7 @@ export const SoftEligibilitySessionExample: FC = () => {
 
   return (
     <Stack spacing={2}>
-      <Stack direction="row" justifyContent="space-between">
+      <Stack direction="row" justifyContent="space-between" alignItems="center">
         <Typography variant="h6">SoftEligibilitySession</Typography>
         <Typography fontFamily="monospace">{sessionState.status}</Typography>
       </Stack>
@@ -36,21 +36,6 @@ export const SoftEligibilitySessionExample: FC = () => {
       <Button disabled={!canSubmit} variant="contained" onClick={submitHandler}>
         Submit Soft Eligibility
       </Button>
-
-      {sessionState.providers && (
-        <>
-          <Typography variant="h6">Eligible Providers</Typography>
-          <List>
-            {sessionState.providers.map((provider) => (
-              <ListItem key={provider.id}>
-                <ListItemText>
-                  {provider.name} {provider.npi}
-                </ListItemText>
-              </ListItem>
-            ))}
-          </List>
-        </>
-      )}
     </Stack>
   )
 }

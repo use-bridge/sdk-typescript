@@ -7,7 +7,13 @@ export const PageHeader: FC<{
   action?: string
   onAction?: (() => void) | undefined
 }> = ({ title, path, action, onAction }) => (
-  <Stack spacing={2} direction="row" justifyContent="space-between" alignItems="start">
+  <Stack
+    spacing={2}
+    direction="row"
+    justifyContent="space-between"
+    alignItems="start"
+    sx={{ mb: 4 }}
+  >
     <Stack spacing={1}>
       <Typography variant="h4">{title}</Typography>
       <Typography variant="subtitle1" fontFamily="monospace">
