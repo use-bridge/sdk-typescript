@@ -11,7 +11,7 @@ import {
 } from "@usebridge/sdk-core"
 import { MergeStrategyPicker } from "../components/merge-strategy-picker"
 import { DateObjectPicker } from "../components/date-object-picker"
-import { useBridgeSdk } from "@usebridge/sdk-react"
+import { SoftEligibilityProvider, useBridgeSdk } from "@usebridge/sdk-react"
 import { SoftEligibilitySessionExample } from "./soft-eligibility-session-example"
 
 export default function SoftEligibilityPage() {
@@ -53,7 +53,11 @@ export default function SoftEligibilityPage() {
           Create Soft Eligibility Session
         </Button>
       )}
-      {session && <SoftEligibilitySessionExample session={session} />}
+      {session && (
+        <SoftEligibilityProvider session={session}>
+          <SoftEligibilitySessionExample />
+        </SoftEligibilityProvider>
+      )}
     </Stack>
   )
 }
