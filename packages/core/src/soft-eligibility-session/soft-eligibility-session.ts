@@ -68,6 +68,7 @@ export class SoftEligibilitySession extends EventEmitter<SoftEligibilitySessionE
     payerId: string
     state: UsStateCode
   }): Promise<SoftEligibilitySessionState> {
+    this.config.logger?.info("SoftEligibilitySession.submit", { payerId, state })
     // One request at a time
     if (this.#state.status === "SUBMITTING") throw new AlreadySubmittingError()
 
@@ -127,6 +128,7 @@ export class SoftEligibilitySession extends EventEmitter<SoftEligibilitySessionE
 
       // If there are none, we're INELIGIBLE
       if (isEmpty(providers)) {
+        this.config.logger?.info("SoftEligibilitySession resolved, no providers")
         return this.setState({
           status: "INELIGIBLE",
           providers: null,
@@ -135,6 +137,7 @@ export class SoftEligibilitySession extends EventEmitter<SoftEligibilitySessionE
       }
 
       // Otherwise, this is good
+      this.config.logger?.info("SoftEligibilitySession resolved, eligible")
       return this.setState({
         status: "ELIGIBLE",
         providers,
@@ -142,6 +145,7 @@ export class SoftEligibilitySession extends EventEmitter<SoftEligibilitySessionE
       })
     } catch (err) {
       // If anything goes wrong, we need to try again, and then resolve with the final state
+      this.config.logger?.error("SoftEligibilitySession error", { err })
       return this.setState({
         status: "ERROR",
         providers: null,
@@ -152,6 +156,7 @@ export class SoftEligibilitySession extends EventEmitter<SoftEligibilitySessionE
 
   private setState(state: SoftEligibilitySessionState): SoftEligibilitySessionState {
     this.#state = state
+    this.config?.logger?.debug?.("SoftEligibilitySession state updated", { state })
     this.emit("update", state)
     return state
   }
