@@ -40,7 +40,9 @@ export const SoftEligibilitySessionExample: FC<SoftEligibilitySessionExample> = 
   const [payer, setPayer] = useState<BridgeApi.SearchPayerV1ResponseItem | null>(null)
   const [state, setState] = useState<UsStateCode | null>(null)
 
-  const canSubmit = Boolean(sessionState.status !== "ERROR" && payer && state)
+  const canSubmit = Boolean(
+    !["SUBMITTING", "ERROR"].includes(sessionState.status) && payer && state,
+  )
 
   const submitHandler = useCallback(() => {
     if (!payer) throw new Error("Payer is required")
