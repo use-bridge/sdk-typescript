@@ -1,7 +1,16 @@
 import { EventEmitter } from "eventemitter3"
 import { v4 as uuidv4 } from "uuid"
-import type { HardEligibilitySessionConfig, HardEligibilitySessionState } from "./types.js"
-import type { BridgeSdkConfig, DateObject, UsStateCode } from "../types/index.js"
+import type {
+  HardEligibilitySessionConfig,
+  HardEligibilitySessionState,
+  HardEligibilitySubmissionArgs,
+} from "./types.js"
+import type { BridgeSdkConfig } from "../types/index.js"
+import { isEmpty } from "lodash-es"
+import { ServiceTypeRequiredError } from "../errors/service-type-required-error.js"
+import { AlreadySubmittingError } from "../errors/index.js"
+import { BridgeApiClient } from "@usebridge/api"
+import { dateObjectToDate, dateObjectToDatestamp, dateToDateObject } from "../lib/date-object.js"
 
 interface HardEligibilitySessionEvents {
   update: [HardEligibilitySessionState]
@@ -12,43 +21,71 @@ interface HardEligibilitySessionEvents {
  * Any time the 'state' is updated, an `update` event is emitted
  */
 export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionEvents> {
+  readonly id: string
   #state: HardEligibilitySessionState
 
   constructor(
+    private readonly apiClient: BridgeApiClient,
     private readonly config: BridgeSdkConfig,
     private readonly sessionConfig: HardEligibilitySessionConfig,
   ) {
     super()
-    this.#state = {
-      id: uuidv4(),
-      status: "PENDING",
-    }
+    if (isEmpty(sessionConfig.serviceTypeIds)) throw new ServiceTypeRequiredError()
+    this.id = uuidv4()
+    this.#state = { status: "PENDING" }
+    this.config.logger?.info("HardEligibilitySession created", { id: this.id, sessionConfig })
   }
 
   /**
    * Fetch the current state of the session
    */
-  get state(): HardEligibilitySessionState {
-    throw new Error("TODO")
+  get state(): Readonly<HardEligibilitySessionState> {
+    return this.#state
   }
 
   /**
    * Submits a new request for Hard Eligibility
-   * @param payerId the Bridge payer ID for the request (pyr_xxx)
-   * @param state the patient's location at the time of the Service
-   * @param firstName the Patient's first name
-   * @param lastName the Patient's last name
-   * @param dateOfBirth the Patient's Date of Birth
-   * @param memberId the Patient's Member ID, optional (depending on the Payer)
+   * @return the state when it reaches an actionable state
+   * @throws {AlreadySubmittingError} if a request is already in-flight
    */
-  submit(args: {
-    payerId: string
-    state: UsStateCode
-    firstName: string
-    lastName: string
-    dateOfBirth: DateObject
-    memberId?: string
-  }): Promise<HardEligibilitySessionState> {
-    throw new Error("TODO")
+  async submit(args: HardEligibilitySubmissionArgs): Promise<HardEligibilitySessionState> {
+    this.config.logger?.info("HardEligibilitySession.submit", { id: this.id, args })
+    const { payerId, state, firstName, lastName, dateOfBirth, memberId } = args
+
+    // One request at a time
+    if (this.#state.status === "SUBMITTING_POLICY") throw new AlreadySubmittingError()
+    if (this.#state.status === "SUBMITTING_SERVICE_ELIGIBILITY") throw new AlreadySubmittingError()
+
+    // Move into Policy submission
+    this.setState({ args, status: "SUBMITTING_POLICY" })
+
+    try {
+      // Create the Policy
+      const { dateOfService } = this.sessionConfig
+      const createPolicyResponse = await this.apiClient.policies.createPolicy({
+        payerId,
+        state,
+        dateOfService: dateObjectToDate(
+          this.sessionConfig.dateOfService ?? dateToDateObject(),
+        ).toISOString(),
+        memberId: args.memberId,
+        person: { firstName, lastName, dateOfBirth: dateObjectToDatestamp(dateOfBirth) },
+      })
+
+      // Now it's created, we have
+
+      // TODO
+      throw new Error("TODO")
+    } catch (err) {
+      // TODO
+      throw err
+    }
+  }
+
+  private setState(state: HardEligibilitySessionState): HardEligibilitySessionState {
+    this.#state = state
+    this.config?.logger?.debug?.("HardEligibilitySession state updated", { state })
+    this.emit("update", state)
+    return state
   }
 }

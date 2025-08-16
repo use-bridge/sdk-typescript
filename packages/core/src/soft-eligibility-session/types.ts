@@ -3,6 +3,7 @@ import type {
   EligibleProvider,
   ServiceTypeId,
   ServiceTypeMergeStrategy,
+  UsStateCode,
 } from "../types/index.ts"
 
 /**
@@ -40,6 +41,20 @@ export type SoftEligibilitySessionStatus =
   | "ELIGIBLE" // The most recent request resolved to be eligible
 
 /**
+ * Arguments to submit a Soft Eligibility request
+ */
+export interface SoftEligibilitySubmissionArgs {
+  /**
+   * The Bridge Payer ID for the request (pyr_xxx)
+   */
+  payerId: string
+  /**
+   * The patient's location at the time of the Service
+   */
+  state: UsStateCode
+}
+
+/**
  * Current state of a Soft Eligibility Session
  */
 export interface SoftEligibilitySessionState {
@@ -49,13 +64,18 @@ export interface SoftEligibilitySessionState {
   status: SoftEligibilitySessionStatus
 
   /**
+   * Arguments used to submit the request
+   */
+  args?: SoftEligibilitySubmissionArgs
+
+  /**
    * If the status is ELIGIBLE, this contains the final set of EligibleProviders
    */
-  providers: ReadonlyArray<EligibleProvider> | null
+  providers?: ReadonlyArray<EligibleProvider>
 
   /**
    * If the status is INELIGIBLE or ELIGIBLE, this contains the final set of ProviderEligibility resources
    * The key of the object is each ServiceType ID
    */
-  providerEligibility: Record<ServiceTypeId, ApiClientProviderEligibility> | null
+  providerEligibility?: Record<ServiceTypeId, ApiClientProviderEligibility>
 }

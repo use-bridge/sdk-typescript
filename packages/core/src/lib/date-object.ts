@@ -2,10 +2,25 @@ import type { DateObject } from "../types/index.js"
 import dayjs from "dayjs"
 
 /**
+ * Converts a DateObject to a Dayjs object
+ */
+export function dateObjectToDayjs(dateObject: DateObject): dayjs.Dayjs {
+  return dayjs(`${dateObject.year}-${dateObject.month}-${dateObject.day}`, "YYYY-MM-DD")
+}
+
+/**
+ * Converts a DateObject to a "YYYY-MM-DD" formatted string
+ */
+export function dateObjectToDatestamp(dateObject: DateObject): string {
+  // TODO We need to be sure on how this gets handled with browser timestamps
+  return dateObjectToDayjs(dateObject).format("YYYY-MM-DD")
+}
+
+/**
  * Converts a DateObject to a Date
  */
 export function dateObjectToDate(dateObject: DateObject): Date {
-  return dayjs(`${dateObject.year}-${dateObject.month}-${dateObject.day}`, "YYYY-MM-DD").toDate()
+  return dateObjectToDayjs(dateObject).toDate()
 }
 
 /**

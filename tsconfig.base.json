@@ -9,6 +9,6 @@
     "noEmit": true,
     "skipLibCheck": true,
     "verbatimModuleSyntax": true,
-    "exactOptionalPropertyTypes": true
+    "exactOptionalPropertyTypes": false
   }
 }

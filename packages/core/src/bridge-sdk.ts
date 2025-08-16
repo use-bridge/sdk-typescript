@@ -65,6 +65,6 @@ export class BridgeSdk {
    * Creates a new Hard Eligibility Session
    */
   createHardEligibilitySession(config: HardEligibilitySessionConfig): HardEligibilitySession {
-    return new HardEligibilitySession(this.config, config)
+    return new HardEligibilitySession(this.#client, this.config, config)
   }
 }

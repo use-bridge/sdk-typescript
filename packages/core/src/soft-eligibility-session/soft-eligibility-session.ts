@@ -1,7 +1,11 @@
 import { EventEmitter } from "eventemitter3"
 import { v4 as uuidv4 } from "uuid"
-import type { SoftEligibilitySessionConfig, SoftEligibilitySessionState } from "./types.js"
-import type { BridgeSdkConfig, DateObject, UsStateCode } from "../types/index.js"
+import type {
+  SoftEligibilitySessionConfig,
+  SoftEligibilitySessionState,
+  SoftEligibilitySubmissionArgs,
+} from "./types.js"
+import type { BridgeSdkConfig } from "../types/index.js"
 import { AlreadySubmittingError } from "../errors/index.js"
 import { BridgeApi, BridgeApiClient } from "@usebridge/api"
 import { dateObjectToDate, dateToDateObject } from "../lib/date-object.js"
@@ -31,53 +35,31 @@ export class SoftEligibilitySession extends EventEmitter<SoftEligibilitySessionE
     super()
     if (isEmpty(sessionConfig.serviceTypeIds)) throw new ServiceTypeRequiredError()
     this.id = uuidv4()
-    this.#state = {
-      status: "PENDING",
-      providers: null,
-      providerEligibility: null,
-    }
+    this.#state = { status: "PENDING" }
+    this.config.logger?.info("SoftEligibilitySession created", { id: this.id, sessionConfig })
   }
 
   /**
    * Fetch the current state of the session
    */
-  get state(): SoftEligibilitySessionState {
+  get state(): Readonly<SoftEligibilitySessionState> {
     return this.#state
   }
 
   /**
-   * The Date of Service for this session
-   */
-  get dateOfService(): DateObject {
-    return this.sessionConfig.dateOfService ?? dateToDateObject()
-  }
-
-  /**
-   * Submits a new request for Soft Eligibility
-   * @param payerId the Bridge Payer ID for the request (pyr_xxx)
-   * @param state the patient's location at the time of the Service
-   *
-   * @return a Promise that resolves to a terminal SoftEligibilitySessionState
-   *
+   * Submits a new request for Soft Eligibility   *
+   * @return a Promise that resolves to a terminal SoftEligibilitySessionState   *
    * @throws {AlreadySubmittingError} if a request is already in-flight
    */
-  async submit({
-    payerId,
-    state,
-  }: {
-    payerId: string
-    state: UsStateCode
-  }): Promise<SoftEligibilitySessionState> {
-    this.config.logger?.info("SoftEligibilitySession.submit", { payerId, state })
+  async submit(args: SoftEligibilitySubmissionArgs): Promise<SoftEligibilitySessionState> {
+    this.config.logger?.info("SoftEligibilitySession.submit", { id: this.id, args })
+    const { payerId, state } = args
+
     // One request at a time
     if (this.#state.status === "SUBMITTING") throw new AlreadySubmittingError()
 
     // Move to SUBMITTING, clear things out
-    this.setState({
-      status: "SUBMITTING",
-      providers: null,
-      providerEligibility: null,
-    })
+    this.setState({ args, status: "SUBMITTING" })
 
     try {
       const { serviceTypeIds, mergeStrategy } = this.sessionConfig
@@ -91,7 +73,9 @@ export class SoftEligibilitySession extends EventEmitter<SoftEligibilitySessionE
               await this.apiClient.providerEligibility.createProviderEligibility({
                 payerId,
                 location: { state },
-                dateOfService: dateObjectToDate(this.dateOfService).toISOString(),
+                dateOfService: dateObjectToDate(
+                  this.sessionConfig.dateOfService ?? dateToDateObject(),
+                ).toISOString(),
                 serviceTypeId,
               }),
             ],
@@ -129,34 +113,22 @@ export class SoftEligibilitySession extends EventEmitter<SoftEligibilitySessionE
       // If there are none, we're INELIGIBLE
       if (isEmpty(providers)) {
         this.config.logger?.info("SoftEligibilitySession resolved, no providers")
-        return this.setState({
-          status: "INELIGIBLE",
-          providers: null,
-          providerEligibility,
-        })
+        return this.setState({ args, status: "INELIGIBLE", providerEligibility })
       }
 
       // Otherwise, this is good
       this.config.logger?.info("SoftEligibilitySession resolved, eligible")
-      return this.setState({
-        status: "ELIGIBLE",
-        providers,
-        providerEligibility,
-      })
+      return this.setState({ args, status: "ELIGIBLE", providers, providerEligibility })
     } catch (err) {
       // If anything goes wrong, we need to try again, and then resolve with the final state
-      this.config.logger?.error("SoftEligibilitySession error", { err })
-      return this.setState({
-        status: "ERROR",
-        providers: null,
-        providerEligibility: null,
-      })
+      this.config.logger?.error("SoftEligibilitySession error", { id: this.id, err })
+      return this.setState({ args, status: "ERROR" })
     }
   }
 
   private setState(state: SoftEligibilitySessionState): SoftEligibilitySessionState {
     this.#state = state
-    this.config?.logger?.debug?.("SoftEligibilitySession state updated", { state })
+    this.config?.logger?.debug?.("SoftEligibilitySession state updated", { id: this.id, state })
     this.emit("update", state)
     return state
   }
