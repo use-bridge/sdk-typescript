@@ -21,6 +21,8 @@ export const PageLayout: FC<PropsWithChildren> = ({ children }) => (
         <NavLink href="/hard-eligibility" label="Hard Eligibility" />
       </List>
     </Grid>
-    <Grid size={{ xs: 8, sm: 9, md: 10 }}>{children}</Grid>
+    <Grid size={{ xs: 8, sm: 9, md: 10 }} sx={{ p: 4 }}>
+      {children}
+    </Grid>
   </Grid>
 )

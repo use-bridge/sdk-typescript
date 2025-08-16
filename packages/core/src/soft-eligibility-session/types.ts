@@ -18,15 +18,15 @@ export interface SoftEligibilitySessionConfig {
   /**
    * The date of service to check against, defaults to today
    */
-  serviceTypeIds: ServiceTypeId[]
+  dateOfService?: DateObject
   /**
    * List of ServiceType IDs to check against
    */
-  mergeStrategy?: ServiceTypeMergeStrategy
+  serviceTypeIds: ServiceTypeId[]
   /**
    * How to combine results of multiple ServiceTypes, defaults to UNION
    */
-  dateOfService?: DateObject
+  mergeStrategy?: ServiceTypeMergeStrategy
 }
 
 /**
@@ -40,39 +40,22 @@ export type SoftEligibilitySessionStatus =
   | "ELIGIBLE" // The most recent request resolved to be eligible
 
 /**
- * Possible actions that can be taken on a soft eligibility session
- *
- * RETRY = It's possible to retry a new request
- */
-export type SoftEligibilitySessionAction = "RETRY"
-
-/**
  * Current state of a Soft Eligibility Session
  */
 export interface SoftEligibilitySessionState {
-  /**
-   * Unique ID for this session
-   */
-  id: string
-
   /**
    * The current status of the session, begins PENDING
    */
   status: SoftEligibilitySessionStatus
 
   /**
-   * If defined, hints for the next action that should be taken
-   */
-  nextAction?: SoftEligibilitySessionAction
-
-  /**
    * If the status is ELIGIBLE, this contains the final set of EligibleProviders
    */
-  providers?: ReadonlyArray<EligibleProvider>
+  providers: ReadonlyArray<EligibleProvider> | null
 
   /**
    * If the status is INELIGIBLE or ELIGIBLE, this contains the final set of ProviderEligibility resources
    * The key of the object is each ServiceType ID
    */
-  providerEligibility?: Record<ServiceTypeId, ApiClientProviderEligibility>
+  providerEligibility: Record<ServiceTypeId, ApiClientProviderEligibility> | null
 }

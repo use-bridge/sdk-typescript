@@ -34,12 +34,15 @@
     "@usebridge/api": ">=0.0.18"
   },
   "devDependencies": {
+    "@types/lodash-es": "^4",
     "@usebridge/api": ">=0.0.18"
   },
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
+    "dayjs": "^1.11.13",
+    "lodash-es": "^4.17.21",
     "uuid": "^11.1.0"
   }
 }

@@ -5,6 +5,8 @@ import { CacheProvider } from "@emotion/react"
 import createCache from "@emotion/cache"
 import { useServerInsertedHTML } from "next/navigation"
 import { CssBaseline, ThemeProvider } from "@mui/material"
+import { LocalizationProvider } from "@mui/x-date-pickers"
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs"
 import { theme } from "../theme"
 
 export default function MuiProviders({ children }: { children: React.ReactNode }) {
@@ -50,7 +52,7 @@ export default function MuiProviders({ children }: { children: React.ReactNode }
     <CacheProvider value={cache}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        {children}
+        <LocalizationProvider dateAdapter={AdapterDayjs}>{children}</LocalizationProvider>
       </ThemeProvider>
     </CacheProvider>
   )

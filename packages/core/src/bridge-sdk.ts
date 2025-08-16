@@ -52,7 +52,7 @@ export class BridgeSdk {
    * Creates a new Soft Eligibility Session
    */
   createSoftEligibilitySession(config: SoftEligibilitySessionConfig): SoftEligibilitySession {
-    return new SoftEligibilitySession(this.config, config)
+    return new SoftEligibilitySession(this.#client, this.config, config)
   }
 
   /**

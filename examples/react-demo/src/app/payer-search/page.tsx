@@ -10,12 +10,9 @@ export default function Page() {
   const [payer, setPayer] = useState<BridgeApi.SearchPayerV1ResponseItem | null>(null)
 
   return (
-    <Stack sx={{ p: 4 }} spacing={4}>
-      <PageHeader
-        title="Payer Search (Autocomplete)"
-        path={"/examples/react-demo/src/app/payer-search/page.tsx"}
-      />
-      <PayerAutocompleteField onPayerChange={setPayer} />
+    <Stack spacing={4}>
+      <PageHeader title="Payer Search (Autocomplete)" path="payer-search" />
+      <PayerAutocompleteField onPayerChanged={setPayer} />
       {payer ? (
         <Stack spacing={1}>
           <Typography variant="h6">{payer.name}</Typography>

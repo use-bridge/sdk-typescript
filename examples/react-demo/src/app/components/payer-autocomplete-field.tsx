@@ -6,17 +6,21 @@ import { usePayerAutocomplete } from "@usebridge/sdk-react"
 import { BridgeApi } from "@usebridge/api"
 
 interface PayerAutocompleteFieldProps {
-  onPayerChange: (payer: BridgeApi.SearchPayerV1ResponseItem | null) => void
+  onPayerChanged: (payer: BridgeApi.SearchPayerV1ResponseItem | null) => void
+  disabled?: boolean
 }
 
-export const PayerAutocompleteField = ({ onPayerChange }: PayerAutocompleteFieldProps) => {
+export const PayerAutocompleteField = ({
+  disabled,
+  onPayerChanged,
+}: PayerAutocompleteFieldProps) => {
   const [inputValue, setInputValue] = useState("")
   const { results, isLoading } = usePayerAutocomplete(inputValue, { limit: 50 })
   const [value, setValue] = useState<BridgeApi.SearchPayerV1ResponseItem | null>(null)
 
   useEffect(() => {
-    onPayerChange(value)
-  }, [onPayerChange, value])
+    onPayerChanged(value)
+  }, [onPayerChanged, value])
 
   return (
     <Autocomplete<BridgeApi.SearchPayerV1ResponseItem>
@@ -32,8 +36,9 @@ export const PayerAutocompleteField = ({ onPayerChange }: PayerAutocompleteField
       renderInput={({ InputProps, InputLabelProps, ...params }) => (
         <TextField
           {...params}
+          disabled={Boolean(disabled)}
           variant="outlined"
-          size="small"
+          size="medium"
           label="Payer"
           placeholder="Search"
           InputLabelProps={{

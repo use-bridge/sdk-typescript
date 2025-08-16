@@ -5,9 +5,9 @@ export * from "./us-states.js"
  * Object representation of a date
  */
 export interface DateObject {
-  year: number
-  month: number
-  day: number
+  year: string
+  month: string
+  day: string
 }
 
 /**
