@@ -6,11 +6,11 @@ import { type FC, useEffect, useMemo, useState } from "react"
 import type { DateObject } from "@usebridge/sdk-core"
 
 interface DateOnlyPickerProps {
-  onChanged: (date: DateObject) => void
+  onChange: (date: DateObject) => void
   disabled: boolean
 }
 
-export const DateObjectPicker: FC<DateOnlyPickerProps> = ({ disabled, onChanged }) => {
+export const DateObjectPicker: FC<DateOnlyPickerProps> = ({ disabled, onChange }) => {
   const [value, setValue] = useState(dayjs())
 
   const dateObject = useMemo(
@@ -24,8 +24,8 @@ export const DateObjectPicker: FC<DateOnlyPickerProps> = ({ disabled, onChanged 
   )
 
   useEffect(() => {
-    onChanged(dateObject)
-  }, [dateObject, onChanged])
+    onChange(dateObject)
+  }, [dateObject, onChange])
 
   return (
     <DatePicker

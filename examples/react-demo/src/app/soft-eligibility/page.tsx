@@ -1,30 +1,26 @@
 "use client"
 
-import { useState } from "react"
+import { useCallback, useState } from "react"
 import { PageHeader } from "../components/page-header"
 import { Alert, Button, Grid, Stack } from "@mui/material"
-import { ServiceTypePicker } from "../components/service-type-picker"
-import {
-  type DateObject,
-  type ServiceTypeMergeStrategy,
-  SoftEligibilitySession,
-} from "@usebridge/sdk-core"
-import { MergeStrategyPicker } from "../components/merge-strategy-picker"
-import { DateObjectPicker } from "../components/date-object-picker"
+import { SoftEligibilitySession, type SoftEligibilitySessionConfig } from "@usebridge/sdk-core"
 import { SoftEligibilityProvider, useBridgeSdk } from "@usebridge/sdk-react"
 import { SoftEligibilitySessionExample } from "./soft-eligibility-session-example"
 import { SoftEligibilityEligibleProviderList } from "./soft-eligibility-providers"
+import { SoftEligibilityConfigForm } from "./soft-eligibility-config-form"
 
 export default function SoftEligibilityPage() {
   const bridgeSdk = useBridgeSdk()
-  const [serviceTypeIds, setServiceTypeIds] = useState<string[]>()
-  const [mergeStrategy, setMergeStrategy] = useState<ServiceTypeMergeStrategy>()
-  const [dateOfService, setDateOfService] = useState<DateObject>()
+  const [config, setConfig] = useState<SoftEligibilitySessionConfig>()
   const [session, setSession] = useState<SoftEligibilitySession>()
 
+  const isValidConfig = config?.serviceTypeIds?.length ?? 0 > 0
   const hasSession = Boolean(session)
-  const isReady =
-    serviceTypeIds && mergeStrategy && dateOfService && Boolean(serviceTypeIds?.length)
+
+  const handleCreateSession = useCallback(() => {
+    if (!isValidConfig || !config) throw new Error()
+    setSession(bridgeSdk.createSoftEligibilitySession(config))
+  }, [isValidConfig, hasSession, config])
 
   return (
     <Stack>
@@ -37,26 +33,15 @@ export default function SoftEligibilityPage() {
       <Grid container spacing={4}>
         <Grid size={4}>
           <Stack spacing={2}>
-            <ServiceTypePicker onChanged={setServiceTypeIds} disabled={hasSession} />
-            <MergeStrategyPicker onChanged={setMergeStrategy} disabled={hasSession} />
-            <DateObjectPicker onChanged={setDateOfService} disabled={hasSession} />
-            {!isReady && <Alert severity="warning">Select at least 1 ServiceType</Alert>}
-            {isReady && !hasSession && (
-              <Button
-                variant="contained"
-                onClick={() =>
-                  setSession(
-                    bridgeSdk.createSoftEligibilitySession({
-                      serviceTypeIds,
-                      mergeStrategy,
-                      dateOfService,
-                    }),
-                  )
-                }
-              >
-                Create Soft Eligibility Session
-              </Button>
-            )}
+            <SoftEligibilityConfigForm disabled={hasSession} onChange={setConfig} />
+            <Button
+              disabled={!isValidConfig || hasSession}
+              variant="contained"
+              onClick={handleCreateSession}
+            >
+              Create Soft Eligibility Session
+            </Button>
+            {!isValidConfig && <Alert severity="warning">Select at least 1 ServiceType</Alert>}
           </Stack>
         </Grid>
 

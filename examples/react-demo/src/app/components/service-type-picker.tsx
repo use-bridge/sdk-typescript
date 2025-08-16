@@ -2,18 +2,18 @@ import { Alert, Checkbox, FormControlLabel, FormGroup, Stack, Typography } from 
 import { useEffect, useState } from "react"
 
 interface ServiceTypePickerProps {
-  onChanged: (serviceTypeIds: string[]) => void
+  onChange: (serviceTypeIds: string[]) => void
   disabled?: boolean
 }
 
-export const ServiceTypePicker = ({ disabled, onChanged }: ServiceTypePickerProps) => {
+export const ServiceTypePicker = ({ disabled, onChange }: ServiceTypePickerProps) => {
   const config = process.env.NEXT_PUBLIC_BRIDGE_SERVICE_TYPES
   const serviceTypeIds = config?.split(",") ?? []
   const [selectedServiceTypeIds, setSelectedServiceTypeIds] = useState<string[]>([])
 
   useEffect(() => {
-    onChanged(selectedServiceTypeIds)
-  }, [onChanged, selectedServiceTypeIds])
+    onChange(selectedServiceTypeIds)
+  }, [onChange, selectedServiceTypeIds])
 
   if (!config) {
     return (

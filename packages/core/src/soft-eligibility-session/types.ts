@@ -18,7 +18,7 @@ export interface SoftEligibilitySessionConfig {
   /**
    * The date of service to check against, defaults to today
    */
-  dateOfService?: DateObject
+  dateOfService?: DateObject | undefined
   /**
    * List of ServiceType IDs to check against
    */
@@ -26,7 +26,7 @@ export interface SoftEligibilitySessionConfig {
   /**
    * How to combine results of multiple ServiceTypes, defaults to UNION
    */
-  mergeStrategy?: ServiceTypeMergeStrategy
+  mergeStrategy?: ServiceTypeMergeStrategy | undefined
 }
 
 /**
