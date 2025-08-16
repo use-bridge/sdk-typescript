@@ -25,6 +25,7 @@ function getClientEnvironment(environment: string): string {
  */
 export class BridgeSdk {
   #client: BridgeApiClient
+  #payerSearchCache: Map<string, BridgeApi.SearchPayerV1Response> = new Map()
 
   constructor(private readonly config: BridgeSdkConfig) {
     this.#client = new BridgeApiClient({
@@ -40,12 +41,17 @@ export class BridgeSdk {
    */
   async payerSearch({
     query,
-    limit,
+    limit = 10,
   }: {
     query: string
     limit?: number
   }): Promise<BridgeApi.SearchPayerV1Response> {
-    return this.#client.search.payerSearch({ query, limit: limit ?? 10 })
+    const cacheKey = query.toLowerCase()
+    const cached = this.#payerSearchCache.get(cacheKey)
+    if (cached) return cached
+    const result = await this.#client.search.payerSearch({ query, limit })
+    this.#payerSearchCache.set(cacheKey, result)
+    return result
   }
 
   /**
