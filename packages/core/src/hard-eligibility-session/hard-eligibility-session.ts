@@ -10,7 +10,7 @@ import { isEmpty } from "lodash-es"
 import { ServiceTypeRequiredError } from "../errors/service-type-required-error.js"
 import { AlreadySubmittingError } from "../errors/index.js"
 import { BridgeApiClient } from "@usebridge/api"
-import { dateObjectToDate, dateObjectToDatestamp, dateToDateObject } from "../lib/date-object.js"
+import { dateObjectToDatestamp, dateToDateObject } from "../lib/date-object.js"
 
 interface HardEligibilitySessionEvents {
   update: [HardEligibilitySessionState]
@@ -62,22 +62,33 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
     try {
       // Create the Policy
       const { dateOfService } = this.sessionConfig
-      const createPolicyResponse = await this.apiClient.policies.createPolicy({
+      let policy = await this.apiClient.policies.createPolicy({
         payerId,
         state,
-        dateOfService: dateObjectToDate(
-          this.sessionConfig.dateOfService ?? dateToDateObject(),
-        ).toISOString(),
+        dateOfService: dateObjectToDatestamp(dateOfService ?? dateToDateObject()),
         memberId: args.memberId,
         person: { firstName, lastName, dateOfBirth: dateObjectToDatestamp(dateOfBirth) },
       })
 
-      // Now it's created, we have
+      // Now it's created, we have to poll for it to be resolved
+      this.setState({ args, status: "WAITING_FOR_POLICY", policy })
+      // TODO Poll the Get Policy API, until for it to be resolved
+      // TODO Start listening for the Policy updates with SSE
+      // TODO Timeout after config.policyTimeoutMs (20s)
+
+      // If the Policy is INVALID, we need to handle explaining that back to the user
+      if (policy.status === "INVALID") {
+        // TODO Parse the 'errors' from the Policy and normalize into something better
+      }
+
+      // Status is unknown (we're
+      if (policy.status === "UNKNOWN") {
+      }
 
       // TODO
       throw new Error("TODO")
     } catch (err) {
-      // TODO
+      // TODO Handle unexpected errors at each step
       throw err
     }
   }

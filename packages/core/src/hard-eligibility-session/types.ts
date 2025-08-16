@@ -6,16 +6,13 @@ import type {
   ServiceTypeMergeStrategy,
   UsStateCode,
 } from "../types/index.js"
-
-type ApiClientPolicy = object
-
-// TODO Replace with a reference to generated API client, ServiceEligibility response
-type ApiClientServiceEligibility = object
+import { BridgeApi } from "@usebridge/api"
 
 /**
  * Configures the Hard Eligibility Session
  */
 export interface HardEligibilitySessionConfig {
+  // TODO Option to include 'clinicalInfo'
   /**
    * The date of service to check against, defaults to today
    */
@@ -23,15 +20,25 @@ export interface HardEligibilitySessionConfig {
   /**
    * List of ServiceType IDs to check against
    */
-  mergeStrategy?: ServiceTypeMergeStrategy | undefined
+  mergeStrategy?: ServiceTypeMergeStrategy
   /**
    * How to select an estimate when multiple ServiceTypes are eligible, defaults to HIGHEST
    */
-  estimateSelection?: EstimateSelection | undefined
+  estimateSelection?: EstimateSelection
   /**
    * How to combine results of multiple ServiceTypes, defaults to UNION
    */
-  dateOfService?: DateObject | undefined
+  dateOfService?: DateObject
+  /**
+   * Time to wait for a Policy to be resolved until we consider it a timeout
+   * Defaults to 20s
+   */
+  policyTimeoutMs?: number
+  /**
+   * Time to wait for a ServiceEligibility to be resolved after the Policy, before considering timeout
+   * Defaults to 20s
+   */
+  eligibilityTimeoutMs?: number
 }
 
 /**
@@ -78,7 +85,7 @@ export type HardEligibilitySessionStatus =
   | "SUBMITTING_SERVICE_ELIGIBILITY" // ServiceEligibility is being submitted, wait
   | "WAITING_FOR_SERVICE_ELIGIBILITY" // ServiceEligibility was created, waiting for resolution
   | "SERVICE_ELIGIBILITY_TIMEOUT" // ServiceEligibility did not resolve in time, retry with same inputs
-  | "INELIGIBLE_PLAN" // ServiceEligibility resolved, the plan is not eligible
+  | "INELIGIBLE_POLICY" // ServiceEligibility resolved, the plan is not eligible
   | "INELIGIBLE_PROVIDERS" // ServiceEligibility resolved, the plan is eligible, but there are no Providers
   | "ELIGIBLE" // The patient is eligible, there are Providers
 
@@ -124,6 +131,10 @@ export interface HardEligibilitySubmissionArgs {
  * Current state of a Hard Eligibility Session
  */
 export interface HardEligibilitySessionState {
+  // TODO Merged eligibility field
+  // TODO Selected estimate field
+  // TODO ^ CPR, and Clinical Info
+
   /**
    * The current status of the session, begins PENDING
    */
@@ -147,11 +158,11 @@ export interface HardEligibilitySessionState {
   /**
    * The most recent Policy, if applicable
    */
-  policy?: ApiClientPolicy
+  policy?: BridgeApi.PolicyCreateV1Response
 
   /**
    * If the ServiceEligibility resolved to eligible/ineligible, this contains the final set of ServiceEligibility
    * The key of the object is each ServiceType ID
    */
-  serviceEligibility?: Record<ServiceTypeId, ApiClientServiceEligibility>
+  serviceEligibility?: Record<ServiceTypeId, BridgeApi.ServiceEligibilityCreateV1Response>
 }

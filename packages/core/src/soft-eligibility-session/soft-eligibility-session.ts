@@ -8,7 +8,7 @@ import type {
 import type { BridgeSdkConfig } from "../types/index.js"
 import { AlreadySubmittingError } from "../errors/index.js"
 import { BridgeApi, BridgeApiClient } from "@usebridge/api"
-import { dateObjectToDate, dateToDateObject } from "../lib/date-object.js"
+import { dateObjectToDatestamp, dateToDateObject } from "../lib/date-object.js"
 import { fromPairs, intersectionBy, isEmpty, uniqBy } from "lodash-es"
 import { ServiceTypeRequiredError } from "../errors/service-type-required-error.js"
 
@@ -62,7 +62,7 @@ export class SoftEligibilitySession extends EventEmitter<SoftEligibilitySessionE
     this.setState({ args, status: "SUBMITTING" })
 
     try {
-      const { serviceTypeIds, mergeStrategy } = this.sessionConfig
+      const { serviceTypeIds, mergeStrategy, dateOfService } = this.sessionConfig
 
       // We need to make a call for each ServiceType ID, then come back with a map to the ProviderEligibility
       const providerEligibility = fromPairs<BridgeApi.ProviderEligibilityCreateV1Response>(
@@ -73,9 +73,7 @@ export class SoftEligibilitySession extends EventEmitter<SoftEligibilitySessionE
               await this.apiClient.providerEligibility.createProviderEligibility({
                 payerId,
                 location: { state },
-                dateOfService: dateObjectToDate(
-                  this.sessionConfig.dateOfService ?? dateToDateObject(),
-                ).toISOString(),
+                dateOfService: dateObjectToDatestamp(dateOfService ?? dateToDateObject()),
                 serviceTypeId,
               }),
             ],
