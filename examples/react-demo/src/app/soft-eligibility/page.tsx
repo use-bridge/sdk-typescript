@@ -4,7 +4,7 @@ import { useState } from "react"
 import { PageHeader } from "../components/page-header"
 import { Grid, Stack } from "@mui/material"
 import { SoftEligibilitySession } from "@usebridge/sdk-core"
-import { SoftEligibilityProvider, useBridgeSdk } from "@usebridge/sdk-react"
+import { SoftEligibilityProvider, useCreateSoftEligibilitySession } from "@usebridge/sdk-react"
 import { SoftEligibilitySessionExample } from "./soft-eligibility-session-example"
 import { SoftEligibilityEligibleProviderList } from "./soft-eligibility-providers"
 import { SoftEligibilityConfigForm } from "./soft-eligibility-config-form"
@@ -20,7 +20,7 @@ import { SoftEligibilityConfigForm } from "./soft-eligibility-config-form"
  * ^ If successful, the user sees all eligible Providers
  */
 export default function SoftEligibilityPage() {
-  const bridgeSdk = useBridgeSdk()
+  const createSession = useCreateSoftEligibilitySession()
   const [session, setSession] = useState<SoftEligibilitySession>()
 
   return (
@@ -35,7 +35,7 @@ export default function SoftEligibilityPage() {
         <Grid size={4}>
           <SoftEligibilityConfigForm
             disabled={Boolean(session)}
-            onSubmit={(config) => setSession(bridgeSdk.createSoftEligibilitySession(config))}
+            onSubmit={(config) => setSession(createSession(config))}
           />
         </Grid>
         {session && (

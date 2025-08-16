@@ -22,15 +22,15 @@ export interface HardEligibilitySessionConfig {
   /**
    * List of ServiceType IDs to check against
    */
-  mergeStrategy?: ServiceTypeMergeStrategy
+  mergeStrategy?: ServiceTypeMergeStrategy | undefined
   /**
    * How to select an estimate when multiple ServiceTypes are eligible, defaults to HIGHEST
    */
-  estimateSelection?: EstimateSelection
+  estimateSelection?: EstimateSelection | undefined
   /**
    * How to combine results of multiple ServiceTypes, defaults to UNION
    */
-  dateOfService?: DateObject
+  dateOfService?: DateObject | undefined
 }
 
 /**

@@ -1,5 +1,6 @@
-import { Alert, Checkbox, FormControlLabel, FormGroup, Stack, Typography } from "@mui/material"
+import { Checkbox, FormControlLabel, FormGroup, Stack, Typography } from "@mui/material"
 import { useEffect, useState } from "react"
+import { getAvailableServiceTypeIds } from "./lib/get-available-service-type-ids"
 
 interface ServiceTypePickerProps {
   onChange: (serviceTypeIds: string[]) => void
@@ -7,25 +8,12 @@ interface ServiceTypePickerProps {
 }
 
 export const ServiceTypePicker = ({ disabled, onChange }: ServiceTypePickerProps) => {
-  const config = process.env.NEXT_PUBLIC_BRIDGE_SERVICE_TYPES
-  const serviceTypeIds = config?.split(",") ?? []
-  const [selectedServiceTypeIds, setSelectedServiceTypeIds] = useState<string[]>([])
+  const serviceTypeIds = getAvailableServiceTypeIds()
+  const [selectedServiceTypeIds, setSelectedServiceTypeIds] = useState<string[]>(serviceTypeIds)
 
   useEffect(() => {
     onChange(selectedServiceTypeIds)
   }, [onChange, selectedServiceTypeIds])
-
-  if (!config) {
-    return (
-      <Alert severity="error">
-        <Typography>Missing environment variable</Typography>
-        <Typography fontFamily="monospace">NEXT_PUBLIC_BRIDGE_SERVICE_TYPES</Typography>
-        <Typography>
-          Set to a comma-separated list of ServiceType ID's ("svt_xxx,svt_yyy")
-        </Typography>
-      </Alert>
-    )
-  }
 
   return (
     <Stack>
