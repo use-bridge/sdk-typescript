@@ -8,6 +8,7 @@ import {
   type HardEligibilitySessionConfig,
 } from "./hard-eligibility-session/index.js"
 import { BridgeApi, BridgeApiClient } from "@usebridge/api"
+import { setLogger } from "./logger/sdk-logger.js"
 
 function getClientEnvironment(environment: string): string {
   switch (environment) {
@@ -32,6 +33,7 @@ export class BridgeSdk {
       apiKey: config.publishableKey,
       environment: getClientEnvironment(config.environment ?? "production"),
     })
+    setLogger(config.logger)
   }
 
   /**

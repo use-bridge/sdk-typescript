@@ -39,6 +39,10 @@ export interface HardEligibilitySessionConfig {
    * Defaults to 20s
    */
   eligibilityTimeoutMs?: number
+  /**
+   * Interval between polling for updates, defaults to 2s
+   */
+  pollingIntervalMs?: number
 }
 
 /**
@@ -50,7 +54,7 @@ export type HardEligibilityErrorCode =
   | "NOT_FOUND_NAME" // Patient wasn't found, hints at name mismatch
   | "NOT_FOUND_MEMBER_ID" // Patient wasn't found, hints at Member ID mismatch
   | "SERVER_ERROR" // Unexpected server error, retry
-  | "PAYER_TIMEOUT" // Error reported from the payer, retry
+  | "TIMEOUT" // Payer timed out
 
 /**
  * Describes the error that should be displayed to the user
@@ -83,10 +87,10 @@ export interface HardEligibilityError {
 export type HardEligibilitySessionStatus =
   | "PENDING" // Nothing has been submitted yet
   | "SUBMITTING_POLICY" // Policy is being submitted, wait for creation
+  | "POLICY_SUBMISSION_ERROR" // Policy submission failed, retry with same or new inputs
   | "WAITING_FOR_POLICY" // Policy was created, waiting for resolution
   | "POLICY_TIMEOUT" // Policy resolution took too long, retry with same inputs
   | "POLICY_ERROR" // Policy resolution finished, with an error, retry with same or new inputs
-  | "POLICY_NOT_FOUND" // Policy resolution finished, could not be resolved, retry with new inputs
   | "SUBMITTING_SERVICE_ELIGIBILITY" // ServiceEligibility is being submitted, wait
   | "WAITING_FOR_SERVICE_ELIGIBILITY" // ServiceEligibility was created, waiting for resolution
   | "SERVICE_ELIGIBILITY_TIMEOUT" // ServiceEligibility did not resolve in time, retry with same inputs
