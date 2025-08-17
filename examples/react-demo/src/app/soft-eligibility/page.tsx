@@ -8,6 +8,7 @@ import { SoftEligibilityProvider, useCreateSoftEligibilitySession } from "@usebr
 import { SoftEligibilitySessionExample } from "./soft-eligibility-session-example"
 import { SoftEligibilityEligibleProviderList } from "./soft-eligibility-providers"
 import { SoftEligibilityConfigForm } from "./soft-eligibility-config-form"
+import { SoftEligibilityInputExample2 } from "./soft-eligibility-input-example-2"
 
 /**
  * This page allows the user to configure the inputs for a `createSoftEligibilitySession` call
@@ -42,6 +43,7 @@ export default function SoftEligibilityPage() {
           <SoftEligibilityProvider session={session}>
             <Grid size={4}>
               <SoftEligibilitySessionExample />
+              <SoftEligibilityInputExample2 />
             </Grid>
             <Grid size={4}>
               <SoftEligibilityEligibleProviderList />

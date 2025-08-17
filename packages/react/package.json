@@ -31,7 +31,8 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
-    "@usebridge/sdk-core": "workspace:^"
+    "@usebridge/sdk-core": "workspace:^",
+    "zustand": "^5.0.7"
   },
   "peerDependencies": {
     "@usebridge/api": ">=0.0.18",
