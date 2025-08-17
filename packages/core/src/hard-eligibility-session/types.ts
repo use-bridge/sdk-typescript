@@ -42,19 +42,24 @@ export interface HardEligibilitySessionConfig {
 }
 
 /**
+ * Error code for hard eligibility issues
+ */
+export type HardEligibilityErrorCode =
+  // TODO There are more to handle, stubbed
+  | "NOT_FOUND_DATE_OF_BIRTH" // Patient wasn't found, hints at Date of Birth mismatch
+  | "NOT_FOUND_NAME" // Patient wasn't found, hints at name mismatch
+  | "NOT_FOUND_MEMBER_ID" // Patient wasn't found, hints at Member ID mismatch
+  | "SERVER_ERROR" // Unexpected server error, retry
+  | "PAYER_TIMEOUT" // Error reported from the payer, retry
+
+/**
  * Describes the error that should be displayed to the user
  */
 export interface HardEligibilityError {
   /**
    * Error code, if customizing the messages
    */
-  code:
-    | "NOT_FOUND_DATE_OF_BIRTH" // Patient wasn't found, hints at Date of Birth mismatch
-    | "NOT_FOUND_NAME" // Patient wasn't found, hints at name mismatch
-    | "NOT_FOUND_MEMBER_ID" // Patient wasn't found, hints at Member ID mismatch
-    | "SERVER_ERROR" // Unexpected server error, retry
-    | "PAYER_TIMEOUT" // Error reported from the payer, retry
-  // TODO There are more here
+  code: HardEligibilityErrorCode
 
   /**
    * User-friendly message to display
@@ -69,7 +74,7 @@ export interface HardEligibilityError {
   /**
    * Whether to require the Member ID, even if the Payer does not require it
    */
-  requireMemberId?: boolean
+  forceMemberId?: boolean
 }
 
 /**
@@ -158,11 +163,14 @@ export interface HardEligibilitySessionState {
   /**
    * The most recent Policy, if applicable
    */
-  policy?: BridgeApi.PolicyCreateV1Response
+  policy?: BridgeApi.policies.PolicyCreateV2Response
 
   /**
    * If the ServiceEligibility resolved to eligible/ineligible, this contains the final set of ServiceEligibility
    * The key of the object is each ServiceType ID
    */
-  serviceEligibility?: Record<ServiceTypeId, BridgeApi.ServiceEligibilityCreateV1Response>
+  serviceEligibility?: Record<
+    ServiceTypeId,
+    BridgeApi.serviceEligibility.ServiceEligibilityCreateV2Response
+  >
 }

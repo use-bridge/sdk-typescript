@@ -6,11 +6,13 @@ import type {
   HardEligibilitySubmissionArgs,
 } from "./types.js"
 import type { BridgeSdkConfig } from "../types/index.js"
-import { isEmpty } from "lodash-es"
+import { fromPairs, isEmpty } from "lodash-es"
 import { ServiceTypeRequiredError } from "../errors/service-type-required-error.js"
 import { AlreadySubmittingError } from "../errors/index.js"
-import { BridgeApiClient } from "@usebridge/api"
+import { BridgeApi, BridgeApiClient } from "@usebridge/api"
 import { dateObjectToDatestamp, dateToDateObject } from "../lib/date-object.js"
+import { hardEligibilityErrorFromPolicy } from "./hard-eligibility-error-from-policy.js"
+import { HardEligibilityErrors } from "./hard-eligibility-errors.js"
 
 interface HardEligibilitySessionEvents {
   update: [HardEligibilitySessionState]
@@ -62,7 +64,7 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
     try {
       // Create the Policy
       const { dateOfService } = this.sessionConfig
-      let policy = await this.apiClient.policies.createPolicy({
+      let policy = await this.apiClient.policies.v2.createPolicy({
         payerId,
         state,
         dateOfService: dateObjectToDatestamp(dateOfService ?? dateToDateObject()),
@@ -78,17 +80,61 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
 
       // If the Policy is INVALID, we need to handle explaining that back to the user
       if (policy.status === "INVALID") {
-        // TODO Parse the 'errors' from the Policy and normalize into something better
+        this.config.logger?.info("HardEligibilitySession.submit.policyInvalid", { args, policy })
+        return this.setState({
+          args,
+          status: "POLICY_ERROR",
+          policy,
+          error: hardEligibilityErrorFromPolicy(policy),
+        })
+      } else if (policy.status !== "CONFIRMED") {
+        // Status is not confirmed (we're not expecting this, but it can happen)
+        this.config.logger?.warn("HardEligibilitySession.submit.notConfirmed", { args, policy })
+        return this.setState({
+          args,
+          status: "POLICY_NOT_FOUND",
+          policy,
+          error: HardEligibilityErrors.SERVER_ERROR,
+        })
       }
 
-      // Status is unknown (we're
-      if (policy.status === "UNKNOWN") {
-      }
+      // Policy is confirmed, we can now submit the Service Eligibility
+      this.config.logger?.info("HardEligibilitySession.submit.policyConfirmed", { args, policy })
+      this.setState({ args, status: "SUBMITTING_SERVICE_ELIGIBILITY", policy })
 
-      // TODO
+      // We're submitting one for each of the ServiceType's we have
+      const { serviceTypeIds } = this.sessionConfig
+      const serviceEligibility =
+        fromPairs<BridgeApi.serviceEligibility.ServiceEligibilityCreateV2Response>(
+          await Promise.all(
+            serviceTypeIds.map<
+              Promise<[string, BridgeApi.serviceEligibility.ServiceEligibilityCreateV2Response]>
+            >(async (serviceTypeId) => [
+              serviceTypeId,
+              await this.apiClient.serviceEligibility.v2.createServiceEligibility({
+                serviceTypeId,
+                policyIds: [policy.id],
+                dateOfService: dateObjectToDatestamp(dateOfService ?? dateToDateObject()),
+                state,
+                // clinicalInfo, TODO Support for ClinicalInfo
+              }),
+            ]),
+          ),
+        )
+
+      // TODO We need to resolve each of these, independently
+
+      // TODO Submit the Service Eligibility
+      // TODO Wait for resolution
+      // TODO Handle a timeout
+
+      // TODO Handle errors
+      // TODO Handle ineligibility
+      // TODO Handle eligibility
+
       throw new Error("TODO")
     } catch (err) {
-      // TODO Handle unexpected errors at each step
+      // TODO Handle unexpected errors at each step, maybe split into multiple try/catch blocks
       throw err
     }
   }

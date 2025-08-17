@@ -5,12 +5,7 @@ import type {
   ServiceTypeMergeStrategy,
   UsStateCode,
 } from "../types/index.ts"
-
-/**
- * Should be the API's 'ProviderEligibility' resource
- * TODO We're waiting on the API Client, use those instead
- */
-type ApiClientProviderEligibility = object
+import { BridgeApi } from "@usebridge/api"
 
 /**
  * Configures the Soft Eligibility Session
@@ -77,5 +72,8 @@ export interface SoftEligibilitySessionState {
    * If the status is INELIGIBLE or ELIGIBLE, this contains the final set of ProviderEligibility resources
    * The key of the object is each ServiceType ID
    */
-  providerEligibility?: Record<ServiceTypeId, ApiClientProviderEligibility>
+  providerEligibility?: Record<
+    ServiceTypeId,
+    BridgeApi.providerEligibility.ProviderEligibilityCreateV1Response
+  >
 }
