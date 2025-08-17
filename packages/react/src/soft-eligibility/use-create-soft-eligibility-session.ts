@@ -1,5 +1,5 @@
 import { useCallback } from "react"
-import { useBridgeSdk } from "./use-bridge-sdk.js"
+import { useBridgeSdk } from "../sdk/index.js"
 
 /**
  * Hook returning a function that creates a new SoftEligibilitySession

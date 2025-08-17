@@ -4,7 +4,7 @@ import {
   type EligibilityInputState,
 } from "./eligibility-input-store.js"
 import { type StoreApi, useStore } from "zustand"
-import { SoftEligibilityContext } from "../context/index.js"
+import { SoftEligibilityContext } from "../soft-eligibility/soft-eligibility-context.js"
 
 /**
  * Context holding the EligibilityInputStore

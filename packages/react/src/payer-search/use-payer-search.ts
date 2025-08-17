@@ -1,6 +1,6 @@
-import { useBridgeSdk } from "./use-bridge-sdk.js"
 import { useCallback } from "react"
 import { BridgeApi } from "@usebridge/api"
+import { useBridgeSdk } from "../sdk/index.js"
 
 /**
  * Hook that returns a function to search for Payers

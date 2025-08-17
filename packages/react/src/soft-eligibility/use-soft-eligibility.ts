@@ -1,6 +1,6 @@
 import { useContext } from "react"
 import { SoftEligibilitySession } from "@usebridge/sdk-core"
-import { SoftEligibilityContext } from "../../context/soft-eligibility-context.js"
+import { SoftEligibilityContext } from "./soft-eligibility-context.js"
 
 /**
  * Resolves to the SoftEligibilitySession from context

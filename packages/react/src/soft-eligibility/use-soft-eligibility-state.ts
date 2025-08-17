@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { type SoftEligibilitySessionState } from "@usebridge/sdk-core"
-import { useSoftEligibilitySession } from "./lib/use-soft-eligibility.js"
+import { useSoftEligibilitySession } from "./use-soft-eligibility.js"
 
 /**
  * Resolves to the SoftEligibilitySessionState

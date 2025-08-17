@@ -3,7 +3,7 @@ import { Button, Stack, Typography } from "@mui/material"
 import { PayerAutocompleteField } from "../components/payer-autocomplete-field"
 import { StatePicker } from "../components/state-picker"
 import {
-  useEligibilityInputIsValid,
+  useSoftEligibilityCanSubmit,
   useSoftEligibilityState,
   useSoftEligibilitySubmit,
 } from "@usebridge/sdk-react"
@@ -15,10 +15,7 @@ import {
 export const SoftEligibilitySessionExample: FC = () => {
   const sessionState = useSoftEligibilityState()
   const submit = useSoftEligibilitySubmit()
-
-  const isValid = useEligibilityInputIsValid()
-
-  const canSubmit = Boolean(!["SUBMITTING", "ERROR"].includes(sessionState.status) && isValid)
+  const canSubmit = useSoftEligibilityCanSubmit()
 
   return (
     <Stack spacing={2}>
