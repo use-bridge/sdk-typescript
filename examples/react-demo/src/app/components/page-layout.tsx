@@ -16,7 +16,6 @@ export const PageLayout: FC<PropsWithChildren> = ({ children }) => (
     <Grid size={{ xs: 4, sm: 3, md: 2 }} sx={{ backgroundColor: "grey.50" }}>
       <List>
         <NavLink href="https://github.com/use-bridge/sdk" label="GitHub" target="_blank" />
-        <NavLink href="/payer-search" label="Payer Search" />
         <NavLink href="/soft-eligibility" label="Soft Eligibility" />
         <NavLink href="/hard-eligibility" label="Hard Eligibility" />
       </List>
