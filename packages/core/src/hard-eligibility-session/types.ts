@@ -1,6 +1,7 @@
 // TODO Replace with a reference to generated API client, Policy response
 import type {
   DateObject,
+  EligibleProvider,
   EstimateSelection,
   ServiceTypeId,
   ServiceTypeMergeStrategy,
@@ -82,20 +83,38 @@ export interface HardEligibilityError {
 }
 
 /**
+ * The reason why the patient isn't eligible
+ * TODO Pull this stuff out into 'Ineligibility', without "hard" prefix
+ */
+type HardEligibilityIneligibilityReasonCode =
+  // TODO This list is stubbed
+  "NOT_ACTIVE" | "HMO" | "PROVIDERS"
+
+/**
+ * Explains why a patient isn't eligible
+ */
+export interface HardEligibilityIneligibilityReason {
+  /**
+   * Code for referencing this reason
+   */
+  code: HardEligibilityIneligibilityReasonCode
+  /**
+   * User-friendly message to display
+   */
+  message: string
+}
+
+/**
  * Current status of a Hard Eligibility Session
  */
 export type HardEligibilitySessionStatus =
   | "PENDING" // Nothing has been submitted yet
-  | "SUBMITTING_POLICY" // Policy is being submitted, wait for creation
-  | "POLICY_SUBMISSION_ERROR" // Policy submission failed, retry with same or new inputs
+  | "SERVER_ERROR" // An unexpected server error occurred, retry
+  | "TIMEOUT" // Policy/ServiceEligibility resolution took too long, may retry with same inputs
   | "WAITING_FOR_POLICY" // Policy was created, waiting for resolution
-  | "POLICY_TIMEOUT" // Policy resolution took too long, retry with same inputs
   | "POLICY_ERROR" // Policy resolution finished, with an error, retry with same or new inputs
-  | "SUBMITTING_SERVICE_ELIGIBILITY" // ServiceEligibility is being submitted, wait
   | "WAITING_FOR_SERVICE_ELIGIBILITY" // ServiceEligibility was created, waiting for resolution
-  | "SERVICE_ELIGIBILITY_TIMEOUT" // ServiceEligibility did not resolve in time, retry with same inputs
-  | "INELIGIBLE_POLICY" // ServiceEligibility resolved, the plan is not eligible
-  | "INELIGIBLE_PROVIDERS" // ServiceEligibility resolved, the plan is eligible, but there are no Providers
+  | "INELIGIBLE" // ServiceEligibility resolved, patient is not eligible due to plan/providers
   | "ELIGIBLE" // The patient is eligible, there are Providers
 
 /**
@@ -134,6 +153,15 @@ export interface HardEligibilitySubmissionArgs {
    *The Patient's Member ID, optional (depending on the Payer)
    */
   memberId?: string
+}
+
+/**
+ * The expected PatientResponsibility for an ELIGIBLE HardEligibilitySession
+ */
+export interface HardEligibilityPatientResponsibility {
+  // TODO
+  estimate: { amount: number }
+  conditionalEstimate?: { amount: number }
 }
 
 /**
@@ -177,4 +205,19 @@ export interface HardEligibilitySessionState {
     ServiceTypeId,
     BridgeApi.serviceEligibility.ServiceEligibilityCreateV2Response
   >
+
+  /**
+   * If eligible, the final patient responsibility determination
+   */
+  patientResponsibility?: HardEligibilityPatientResponsibility
+
+  /**
+   * If the status is ELIGIBLE, this contains the final set of EligibleProviders
+   */
+  providers?: ReadonlyArray<EligibleProvider>
+
+  /**
+   * If the patient is INELIGIBLE, this contains the reason
+   */
+  ineligibilityReason?: HardEligibilityIneligibilityReason
 }

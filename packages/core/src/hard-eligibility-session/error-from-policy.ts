@@ -5,9 +5,7 @@ import { HardEligibilityErrors } from "./hard-eligibility-errors.js"
 /**
  * Resolves the most-relevant HardEligibilityError from a Policy
  */
-export function hardEligibilityErrorFromPolicy(
-  policy: BridgeApi.PolicyGetV1Response,
-): HardEligibilityError {
+export function errorFromPolicy(policy: BridgeApi.PolicyGetV1Response): HardEligibilityError {
   if (policy.status !== "INVALID")
     throw new Error("Policy is not in an INVALID state, cannot resolve HardEligibilityError")
   // If there are no errors listed, but we're invalid, it's generic failure

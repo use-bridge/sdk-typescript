@@ -1,20 +1,22 @@
 import { EventEmitter } from "eventemitter3"
 import { v4 as uuidv4 } from "uuid"
 import type {
+  HardEligibilityPatientResponsibility,
   HardEligibilitySessionConfig,
   HardEligibilitySessionState,
   HardEligibilitySubmissionArgs,
 } from "./types.js"
 import type { BridgeSdkConfig } from "../types/index.js"
-import { fromPairs, isEmpty } from "lodash-es"
+import { fromPairs, isEmpty, isNull, uniqBy } from "lodash-es"
 import { ServiceTypeRequiredError } from "../errors/service-type-required-error.js"
 import { AlreadySubmittingError } from "../errors/index.js"
 import { BridgeApi, BridgeApiClient } from "@usebridge/api"
 import { dateObjectToDatestamp, dateToDateObject } from "../lib/date-object.js"
-import { hardEligibilityErrorFromPolicy } from "./hard-eligibility-error-from-policy.js"
+import { errorFromPolicy } from "./error-from-policy.js"
 import { HardEligibilityErrors } from "./hard-eligibility-errors.js"
 import { TimeoutError, timeoutError } from "../lib/timeout-error.js"
 import { logger } from "../logger/sdk-logger.js"
+import { ineligibilityReasonFromServiceEligibility } from "./ineligibility-reason-from-service-eligibility.js"
 
 interface HardEligibilitySessionEvents {
   update: [HardEligibilitySessionState]
@@ -22,10 +24,14 @@ interface HardEligibilitySessionEvents {
 
 const DEFAULT_POLLING_INTERVAL_MS = 2_000 // 2 seconds
 const DEFAULT_POLICY_TIMEOUT_MS = 20_000 // 20 seconds
-const DEFAULT_SERVICE_ELIGIBILITY_TIMEOUT_MS = 20_000 // 20 seconds
+const DEFAULT_ELIGIBILITY_TIMEOUT_MS = 20_000 // 20 seconds
 
-// Policy type that's reached a terminal state
-type ResolvedPolicy = BridgeApi.policies.PolicyGetV1Response & { status: "CONFIRMED" | "INVALID" }
+// TODO We could expose some renamed types more generally
+type Policy = BridgeApi.policies.PolicyGetV1Response
+type ResolvedPolicy = Policy & { status: "CONFIRMED" | "INVALID" }
+
+type ServiceEligibility = BridgeApi.serviceEligibility.ServiceEligibilityGetV1Response
+type ResolvedServiceEligibility = ServiceEligibility & { status: "ELIGIBLE" | "INELIGIBLE" }
 
 /**
  * Instance of a Hard Eligibility Session
@@ -44,7 +50,7 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
     if (isEmpty(sessionConfig.serviceTypeIds)) throw new ServiceTypeRequiredError()
     this.id = uuidv4()
     this.#state = { status: "PENDING" }
-    logger()?.info("HardEligibilitySession created", { id: this.id, sessionConfig })
+    logger()?.info("HardEligibilitySession created", { sessionConfig })
   }
 
   /**
@@ -60,77 +66,144 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
    * @throws {AlreadySubmittingError} if a request is already in-flight
    */
   async submit(args: HardEligibilitySubmissionArgs): Promise<HardEligibilitySessionState> {
-    logger()?.info("HardEligibilitySession.submit", { id: this.id, args })
-    const { state } = args
+    logger()?.info("HardEligibilitySession.submit", { args })
 
     // One request at a time
     if (!this.canSubmit()) throw new AlreadySubmittingError()
 
-    // Move into Policy submission
-    this.setState({ args, status: "SUBMITTING_POLICY" })
+    // State is WAITING_FOR_POLICY, clear everything else
+    this.setState({ args, status: "WAITING_FOR_POLICY" })
 
+    // Create a Policy, then move into "WAITING_FOR_POLICY"
+    let policy
     try {
-      // Create the Policy
-      const { dateOfService } = this.sessionConfig
+      policy = await this.createPolicy(args)
+      this.updateState({ policy })
+    } catch (err) {
+      logger()?.error("HardEligibilitySession.submit.createPolicy.error", { err })
+      return this.updateState({ status: "SERVER_ERROR" })
+    }
 
-      // Create a Policy and wait for it to be resolved
-      const policy = await this.createAndResolvePolicy(args)
-      // If we don't have one, something went wrong, and we can exit here
-      if (!policy) return this.#state
+    // Wait for it to get resolved
+    let resolvedPolicy
+    try {
+      resolvedPolicy = await this.resolvePolicy(policy)
+      logger()?.info("HardEligibilitySession.submit.resolvePolicy", {
+        resolvedPolicy,
+        args,
+        policy,
+      })
+    } catch (err) {
+      logger()?.error("HardEligibilitySession.submit.resolvePolicy.error", { err })
+      return this.updateState({ status: "SERVER_ERROR" })
+    }
 
-      // If the Policy is INVALID, we need to handle explaining that back to the user
-      if (policy.status === "INVALID") {
-        logger()?.info("HardEligibilitySession.submit.policyInvalid", { args, policy })
-        return this.setState({
-          args,
-          status: "POLICY_ERROR",
-          policy,
-          error: hardEligibilityErrorFromPolicy(policy),
+    // If the Policy resolved to null, it timed out
+    if (!resolvedPolicy) {
+      logger()?.info("HardEligibilitySession.submit.policyTimeout", { policy })
+      return this.updateState({ status: "TIMEOUT", error: HardEligibilityErrors.TIMEOUT })
+    }
+
+    // Store the newly resolvedPolicy as the latest version
+    this.updateState({ policy: resolvedPolicy })
+
+    // If the Policy is INVALID, we need to handle explaining that back to the user
+    if (resolvedPolicy.status === "INVALID") {
+      logger()?.info("HardEligibilitySession.submit.policyInvalid", { policy })
+      return this.updateState({ status: "POLICY_ERROR", error: errorFromPolicy(policy) })
+    }
+
+    // We're going to submit and resolve all the ServiceEligibility we need
+    logger()?.info("HardEligibilitySession.submit.resolvingServiceEligibility")
+    this.updateState({ status: "WAITING_FOR_SERVICE_ELIGIBILITY" })
+    let resolvedEligibility
+    try {
+      resolvedEligibility = await this.createAndResolveEligibility({
+        serviceTypeIds: this.sessionConfig.serviceTypeIds,
+        policy: resolvedPolicy,
+        args,
+      })
+      logger()?.info("HardEligibilitySession.submit.resolvedServiceTypes", { resolvedEligibility })
+    } catch (err) {
+      // If any of these threw an error, it's over
+      logger()?.error("HardEligibilitySession.submit.createServiceEligibility.error", { err })
+      return this.updateState({ status: "SERVER_ERROR" })
+    }
+
+    // If any of these are null, we had a timeout
+    const hasNullServiceEligibility = resolvedEligibility.some(isNull)
+    if (hasNullServiceEligibility) {
+      logger()?.info("HardEligibilitySession.submit.serviceEligibilityTimeout")
+      return this.updateState({ status: "TIMEOUT", error: HardEligibilityErrors.TIMEOUT })
+    }
+
+    // Push these ServiceEligibility into a map in the state, by ServiceType ID
+    const nonNullEligibility = resolvedEligibility as ResolvedServiceEligibility[] // This is safe, we checked above
+    this.updateState({
+      serviceEligibility: fromPairs(
+        nonNullEligibility.map<[string, ResolvedServiceEligibility]>((se) => [
+          se.serviceTypeId,
+          se,
+        ]),
+      ),
+    })
+
+    // Given the merge strategy, determine the final state
+    const { mergeStrategy } = this.sessionConfig
+    let providers
+
+    if (mergeStrategy === "UNION") {
+      // If all the ServiceEligibility are INELIGIBLE, we're INELIGIBLE
+      if (nonNullEligibility.every((se) => se.status === "INELIGIBLE")) {
+        logger()?.info("HardEligibilitySession.submit.noEligibleServiceTypes")
+        return this.updateState({
+          status: "INELIGIBLE",
+          ineligibilityReason: ineligibilityReasonFromServiceEligibility(nonNullEligibility),
         })
       }
-
-      // Policy is confirmed, we can now submit the Service Eligibility
-      logger()?.info("HardEligibilitySession.submit.policyConfirmed", { args, policy })
-
-      this.setState({ args, status: "SUBMITTING_SERVICE_ELIGIBILITY", policy })
-
-      // We're submitting one for each of the ServiceType's we have
-      const { serviceTypeIds } = this.sessionConfig
-      const serviceEligibility =
-        fromPairs<BridgeApi.serviceEligibility.ServiceEligibilityCreateV2Response>(
-          await Promise.all(
-            serviceTypeIds.map<
-              Promise<[string, BridgeApi.serviceEligibility.ServiceEligibilityCreateV2Response]>
-            >(async (serviceTypeId) => [
-              serviceTypeId,
-              await this.apiClient.serviceEligibility.v2.createServiceEligibility({
-                serviceTypeId,
-                policyIds: [policy.id],
-                dateOfService: dateObjectToDatestamp(dateOfService ?? dateToDateObject()),
-                state,
-                // clinicalInfo, TODO Support for ClinicalInfo
-              }),
-            ]),
-          ),
-        )
-
-      // TODO We need to resolve each of these, independently
-
-      // TODO Submit the Service Eligibility
-      // TODO Wait for resolution
-      // TODO Handle a timeout
-
-      // TODO Handle errors
-      // TODO Handle ineligibility
-      // TODO Handle eligibility
-
-      throw new Error("TODO")
-    } catch (err) {
-      // TODO Handle unexpected errors at each step, maybe split into multiple try/catch blocks
-      throw err
+      // Combine all the ELIGIBLE Providers, then deduplicate by ID
+      providers = uniqBy(
+        nonNullEligibility.filter((pe) => pe.status === "ELIGIBLE").flatMap((pe) => pe.providers),
+        (p) => p.id,
+      )
+    } else if (mergeStrategy === "INTERSECTION") {
+      // If any of the ServiceEligibility are INELIGIBLE, we're INELIGIBLE
+      if (nonNullEligibility.some(({ status }) => status === "INELIGIBLE")) {
+        logger()?.info("HardEligibilitySession.submit.ineligibleServiceTypes")
+        return this.updateState({
+          status: "INELIGIBLE",
+          ineligibilityReason: ineligibilityReasonFromServiceEligibility(nonNullEligibility),
+        })
+      }
+      // Everything must be eligible, so, we can just intersect all the Providers
+      providers = uniqBy(
+        nonNullEligibility.flatMap((se) => se.providers),
+        (p) => p.id,
+      )
+    } else {
+      throw new Error(`The mergeStrategy ${mergeStrategy} is not supported`)
     }
+
+    // If there are no Providers, we're INELIGIBLE even if the plan covers it
+    if (isEmpty(providers)) {
+      logger()?.info("HardEligibilitySession.submit.noEligibleProviders")
+      return this.updateState({
+        status: "INELIGIBLE",
+        ineligibilityReason: { code: "PROVIDERS", message: "TODO MESSAGE -> NO PROVIDERS" },
+      })
+    }
+
+    // We're eligible, parse out the estimate and send this back
+    return this.updateState({
+      status: "ELIGIBLE",
+      providers,
+      patientResponsibility: this.getPatientResponsibility(nonNullEligibility),
+    })
   }
 
+  /**
+   * Replaces the state value, emits an update event
+   */
   private setState(state: HardEligibilitySessionState): HardEligibilitySessionState {
     this.#state = state
     logger()?.debug?.("HardEligibilitySession state updated", { state })
@@ -139,72 +212,75 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
   }
 
   /**
+   * Applies a partial update to the current state, emits an update event
+   */
+  private updateState(updates: Partial<HardEligibilitySessionState>): HardEligibilitySessionState {
+    return this.setState({ ...this.#state, ...updates })
+  }
+
+  /**
    * Determines whether we're in a state can submit
    */
   private canSubmit(): boolean {
-    if (this.#state.status === "SUBMITTING_POLICY") return false
-    if (this.#state.status === "SUBMITTING_SERVICE_ELIGIBILITY") return false
     if (this.#state.status === "WAITING_FOR_POLICY") return false
     if (this.#state.status === "WAITING_FOR_SERVICE_ELIGIBILITY") return false
+    if (this.#state.status === "ELIGIBLE") return false
+    if (this.#state.status === "INELIGIBLE") return false
     return true
   }
 
   /**
-   * Creates a new Policy, waits until it's been resolved (up until the timeout)
-   * @return the Policy if it was resolved, or null if it timed out
+   * Creates a new Policy, returns it
+   * This is a fast endpoint, asynchronously kicking off resolution
    */
-  private async createAndResolvePolicy(
-    args: HardEligibilitySubmissionArgs,
-  ): Promise<ResolvedPolicy | null> {
+  private async createPolicy(args: HardEligibilitySubmissionArgs): Promise<Policy> {
     const { payerId, state, firstName, lastName, dateOfBirth, memberId } = args
-    const { dateOfService } = this.sessionConfig
-    logger()?.info("HardEligibilitySession.createAndResolvePolicy", { id: this.id })
+    logger()?.info("HardEligibilitySession.resolvePolicy", { args })
+    return this.apiClient.policies.v2.createPolicy({
+      payerId,
+      state,
+      dateOfService: this.dateOfService(),
+      memberId,
+      person: { firstName, lastName, dateOfBirth: dateObjectToDatestamp(dateOfBirth) },
+    })
+  }
 
-    // State is SUBMITTING_POLICY
-    this.setState({ args, status: "SUBMITTING_POLICY" })
+  /**
+   * Creates a new Policy, waits until it's been resolved (up until the timeout)
+   * @return the Policy if it was resolved, or null if it failed
+   */
+  private async resolvePolicy(policy: Policy): Promise<ResolvedPolicy | null> {
+    logger()?.info("HardEligibilitySession.resolvePolicy", { policy })
 
-    let policy
-    try {
-      // Call the Create API, the V2 endpoint resolves immediately and resolves async
-      policy = await this.apiClient.policies.v2.createPolicy({
-        payerId,
-        state,
-        dateOfService: dateObjectToDatestamp(dateOfService ?? dateToDateObject()),
-        memberId,
-        person: { firstName, lastName, dateOfBirth: dateObjectToDatestamp(dateOfBirth) },
-      })
-    } catch (err) {
-      logger()?.error("HardEligibilitySession.createAndResolvePolicy.error", { err, args })
-      this.setState({ args, status: "POLICY_SUBMISSION_ERROR" })
-      throw err
-    }
-
-    // Now it's created, we have to poll for it to be resolved
-    this.setState({ args, status: "WAITING_FOR_POLICY", policy })
-
-    // Race for any of these
+    // Work should stop when this flips
     let waiting = true
 
-    // This polls for an update every 2 seconds
+    // This polls for an update
+    // TODO We can pull out a `poll` function here, use setInterval
     const pollForPolicy = async (): Promise<ResolvedPolicy> => {
       logger()?.info("pollForPolicy")
       while (waiting) {
-        const latestPolicy = await this.apiClient.policies.getPolicy(policy.id)
-        const { status } = latestPolicy
-        // If it's in a terminal state, use it
-        if (status === "CONFIRMED" || status === "INVALID") {
-          logger()?.info("pollForPolicy.resolved", { latestPolicy })
-          return latestPolicy as ResolvedPolicy
+        try {
+          const latestPolicy = await this.apiClient.policies.getPolicy(policy.id)
+          // If it's in a terminal state, use it
+          const { status } = latestPolicy
+          if (status === "CONFIRMED" || status === "INVALID") {
+            logger()?.info("pollForPolicy.resolved", { latestPolicy })
+            return latestPolicy as ResolvedPolicy
+          }
+          // Otherwise, wait for the next poll
+          logger()?.info("pollForPolicy.notReady", { latestPolicy })
+        } catch (err) {
+          // If we had an error in here, we can log it, but keep polling
+          logger()?.error("pollForPolicy.error", { err })
         }
-        // Otherwise, wait for the next poll
-        logger()?.info("pollForPolicy.notReady", { latestPolicy })
         const durationMs = this.sessionConfig.pollingIntervalMs ?? DEFAULT_POLLING_INTERVAL_MS
         await new Promise((resolve) => setTimeout(resolve, durationMs))
       }
       throw new Error("Polling for policy was cancelled")
     }
 
-    // This opens a SSE request to listen for updates
+    // This opens an SSE request to listen for updates
     async function listenForPolicyUpdates(): Promise<ResolvedPolicy> {
       // TODO Listen for Policy updates with SSE
       while (waiting) {
@@ -215,32 +291,188 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
     }
 
     // Expect a Policy in a terminal state, take the first one that comes back
-    let resolvedPolicy: ResolvedPolicy
     try {
-      resolvedPolicy = await Promise.race([
+      const resolvedPolicy = await Promise.race([
         pollForPolicy(),
         listenForPolicyUpdates(),
-        timeoutError(this.sessionConfig.policyTimeoutMs ?? 20_000),
+        timeoutError(this.sessionConfig.policyTimeoutMs ?? DEFAULT_POLICY_TIMEOUT_MS),
       ])
       waiting = false // Flip this, so the other loops cancel
+      return resolvedPolicy
     } catch (err) {
       // If this is a TimeoutError, we can handle it specifically
       if (err instanceof TimeoutError) {
         // Set to the timeout state, and return null
-        this.setState({
-          args,
-          status: "POLICY_TIMEOUT",
-          policy,
-          error: HardEligibilityErrors.TIMEOUT,
-        })
+        this.updateState({ status: "TIMEOUT", error: HardEligibilityErrors.TIMEOUT })
         return null
       }
       // Anything else is unexpected
-      logger()?.error("HardEligibilitySession.createAndResolvePolicy.err", { err, args })
+      logger()?.error("HardEligibilitySession.resolvePolicy.err", { err })
       throw err
     }
+  }
 
-    // If we resolved a Policy, hand it back
-    return resolvedPolicy
+  /**
+   * Concurrently creates and resolves a ServiceEligibility for each ServiceType
+   */
+  private async createAndResolveEligibility({
+    serviceTypeIds,
+    policy,
+    args,
+  }: {
+    serviceTypeIds: string[]
+    policy: Policy
+    args: HardEligibilitySubmissionArgs
+  }) {
+    return Promise.all(
+      serviceTypeIds.map(async (serviceTypeId) => {
+        // Create the ServiceEligibility for this ServiceType
+        const serviceEligibility = await this.createServiceEligibility({
+          serviceTypeId,
+          policy,
+          args,
+        })
+        logger()?.info("HardEligibilitySession.submit.createServiceEligibility", {
+          serviceEligibility,
+        })
+        // Wait for it to resolve, then pass it back
+        const resolvedServiceEligibility = await this.resolveServiceEligibility(serviceEligibility)
+        logger()?.info("HardEligibilitySession.submit.resolveServiceEligibility", {
+          serviceEligibility,
+          resolvedServiceEligibility,
+        })
+        return resolvedServiceEligibility
+      }),
+    )
+  }
+
+  /**
+   * Creates the ServiceEligibility for a given type
+   * API resolves instantly, and we wait for it to settle
+   */
+  private async createServiceEligibility({
+    serviceTypeId,
+    policy,
+    args,
+  }: {
+    serviceTypeId: string
+    policy: Policy
+    args: HardEligibilitySubmissionArgs
+  }) {
+    logger()?.info("HardEligibilitySession.createServiceEligibility", { serviceTypeId, args })
+    // Create the ServiceEligibility, V2 is a quick endpoint that fires off async work
+    return this.apiClient.serviceEligibility.v2.createServiceEligibility({
+      serviceTypeId,
+      policyIds: [policy.id],
+      dateOfService: this.dateOfService(),
+      state: args.state,
+      // clinicalInfo, TODO Support for ClinicalInfo
+    })
+  }
+
+  /**
+   * Waits for a ServiceEligibility to resolve, returning the final state, null if it timed out
+   */
+  private async resolveServiceEligibility(
+    serviceEligibility: ServiceEligibility,
+  ): Promise<ResolvedServiceEligibility | null> {
+    logger()?.info("HardEligibilitySession.resolveServiceEligibility", { serviceEligibility })
+    // Now we're going to wait until it's resolved
+    let waiting = true
+
+    // This polls for updates
+    // TODO Share with `poll` in Policy
+    const pollForServiceEligibility = async (): Promise<ResolvedServiceEligibility> => {
+      logger()?.info("pollForServiceEligibility")
+      while (waiting) {
+        try {
+          const latestServiceEligibility =
+            await this.apiClient.serviceEligibility.getServiceEligibility(serviceEligibility.id)
+          // If it's in a terminal state, use it
+          const { status } = latestServiceEligibility
+          if (status === "ELIGIBLE" || status === "INELIGIBLE") {
+            logger()?.info("pollForServiceEligibility.resolved", { latestServiceEligibility })
+            return latestServiceEligibility as ResolvedServiceEligibility
+          }
+          // Otherwise, wait for the next poll
+          logger()?.info("pollForServiceEligibility.notReady", { latestServiceEligibility })
+        } catch (err) {
+          // If we had an error in here, we can log it, but keep polling
+          logger()?.error("pollForServiceEligibility.error", { err, serviceEligibility })
+        }
+        const durationMs = this.sessionConfig.pollingIntervalMs ?? DEFAULT_POLLING_INTERVAL_MS
+        await new Promise((resolve) => setTimeout(resolve, durationMs))
+      }
+      throw new Error("Polling for service eligibility was cancelled")
+    }
+
+    // This opens an SSE request to listen for updates
+    // TODO Also pull out and share with Policy
+    async function listenForServiceEligibilityUpdates(): Promise<ResolvedServiceEligibility> {
+      // TODO Listen for Service Eligibility updates with SSE
+      while (waiting) {
+        // TODO Placeholder, doing nothing yet
+        await new Promise((resolve) => setTimeout(resolve, 1_000))
+      }
+      throw new Error("Listening for service eligibility updates was cancelled")
+    }
+
+    // Expect a ServiceEligibility in a terminal state, take the first one that comes back
+    try {
+      const resolvedServiceEligibility = await Promise.race([
+        pollForServiceEligibility(),
+        listenForServiceEligibilityUpdates(),
+        timeoutError(this.sessionConfig.eligibilityTimeoutMs ?? DEFAULT_ELIGIBILITY_TIMEOUT_MS),
+      ])
+      waiting = false // Flip this, so the other loops cancel
+      return resolvedServiceEligibility
+    } catch (err) {
+      // If this is a TimeoutError, we can handle it specifically
+      if (err instanceof TimeoutError) {
+        // Set to the timeout state, and return null
+        this.updateState({ status: "TIMEOUT", error: HardEligibilityErrors.TIMEOUT })
+        return null
+      }
+      // Anything else is unexpected
+      logger()?.error("HardEligibilitySession.resolveServiceEligibility.err", {
+        err,
+        serviceEligibility,
+      })
+      throw err
+    }
+  }
+
+  /**
+   * Given the EstimateStrategy, figures out what the estimate should be
+   * Every ServiceEligibility in here should be resolved, with a 'patientResponsibility' present
+   */
+  private getPatientResponsibility(
+    serviceEligibility: ResolvedServiceEligibility[],
+  ): HardEligibilityPatientResponsibility {
+    // If it's empty, we can't do anything
+    if (isEmpty(serviceEligibility)) throw new Error("No ServiceEligibility in getEstimate")
+
+    // TODO Sanity check, everything must have a patientResponsibility
+
+    switch (this.sessionConfig.estimateSelection?.mode ?? "HIGHEST") {
+      // Return the highest dollar value
+      case "HIGHEST":
+
+      // Return the lowest dollar value
+      case "LOWEST":
+
+      // Return the value from a specific ServiceType
+      case "SERVICE_TYPE":
+        // TODO Implement
+        return { estimate: { amount: 100_00 } }
+    }
+  }
+
+  /**
+   * Resolves the date of service to a datestamp
+   * If there isn't one in the sessionConfig, resolves to today
+   */
+  private dateOfService(): string {
+    return dateObjectToDatestamp(this.sessionConfig.dateOfService ?? dateToDateObject())
   }
 }
