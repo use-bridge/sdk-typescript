@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Autocomplete, CircularProgress, TextField } from "@mui/material"
 import { useEligibilityInputPayer, usePayerAutocomplete } from "@usebridge/sdk-react"
-import { BridgeApi } from "@usebridge/api"
+import type { Payer } from "@usebridge/sdk-core"
 
 interface PayerAutocompleteFieldProps {
   disabled?: boolean
@@ -15,7 +15,7 @@ export const PayerAutocompleteField = ({ disabled }: PayerAutocompleteFieldProps
   const [value, setValue] = useEligibilityInputPayer()
 
   return (
-    <Autocomplete<BridgeApi.SearchPayerV1ResponseItem>
+    <Autocomplete<Payer>
       loading={isLoading}
       options={results}
       value={value}

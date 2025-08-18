@@ -1,4 +1,4 @@
-import type { BridgeSdkConfig } from "./types/index.js"
+import type { BridgeSdkConfig, PayerSearchResults } from "./types/index.js"
 import {
   SoftEligibilitySession,
   type SoftEligibilitySessionConfig,
@@ -7,7 +7,7 @@ import {
   HardEligibilitySession,
   type HardEligibilitySessionConfig,
 } from "./hard-eligibility-session/index.js"
-import { BridgeApi, BridgeApiClient } from "@usebridge/api"
+import { BridgeApiClient } from "@usebridge/api"
 import { setLogger } from "./logger/sdk-logger.js"
 
 function getClientEnvironment(environment: string): string {
@@ -26,7 +26,7 @@ function getClientEnvironment(environment: string): string {
  */
 export class BridgeSdk {
   #client: BridgeApiClient
-  #payerSearchCache: Map<string, BridgeApi.SearchPayerV1Response> = new Map()
+  #payerSearchCache: Map<string, PayerSearchResults> = new Map()
 
   constructor(private readonly config: BridgeSdkConfig) {
     this.#client = new BridgeApiClient({
@@ -47,7 +47,7 @@ export class BridgeSdk {
   }: {
     query: string
     limit?: number
-  }): Promise<BridgeApi.SearchPayerV1Response> {
+  }): Promise<PayerSearchResults> {
     const cacheKey = query.toLowerCase()
     const cached = this.#payerSearchCache.get(cacheKey)
     if (cached) return cached

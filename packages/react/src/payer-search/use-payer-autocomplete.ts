@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useIsMounted } from "usehooks-ts"
 import { retryLoop, RetryLoopCancelledError } from "../lib/retry-loop.js"
 import { usePayerSearch } from "./use-payer-search.js"
-import { BridgeApi } from "@usebridge/api"
+import type { Payer } from "@usebridge/sdk-core"
 
 // We'll store these locally, they won't change within a user session
-const resultCache = new Map<string, BridgeApi.SearchPayerV1ResponseItem[]>()
+const resultCache = new Map<string, Payer[]>()
 
 /**
  * Providers autocomplete functionality for the Payer search
@@ -30,7 +30,7 @@ export function usePayerAutocomplete(
   /**
    * The results to display currently
    */
-  results: ReadonlyArray<BridgeApi.SearchPayerV1ResponseItem>
+  results: ReadonlyArray<Payer>
 } {
   // We expect a 'BridgeSdk' to be available in the context
   const payerSearch = usePayerSearch()
@@ -39,7 +39,7 @@ export function usePayerAutocomplete(
 
   // Track the state
   const [isLoading, setIsLoading] = useState(false)
-  const [results, setResults] = useState<BridgeApi.SearchPayerV1ResponseItem[]>([])
+  const [results, setResults] = useState<Payer[]>([])
 
   // We don't need to run again if it's just whitespace
   const normalizedQuery = query.trim().toLowerCase()

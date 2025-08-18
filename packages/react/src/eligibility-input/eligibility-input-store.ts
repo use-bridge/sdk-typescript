@@ -1,6 +1,5 @@
 import { createStore } from "zustand"
-import type { UsStateCode } from "@usebridge/sdk-core"
-import { BridgeApi } from "@usebridge/api"
+import type { Payer, UsStateCode } from "@usebridge/sdk-core"
 
 /**
  * State within the EligibilityInputStore
@@ -9,8 +8,8 @@ export interface EligibilityInputState {
   requirePatient: boolean
 
   payer: {
-    value: BridgeApi.SearchPayerV1ResponseItem | null
-    set: (payer: BridgeApi.SearchPayerV1ResponseItem | null) => void
+    value: Payer | null
+    set: (payer: Payer | null) => void
   }
 
   state: {

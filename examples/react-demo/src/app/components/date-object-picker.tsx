@@ -38,7 +38,7 @@ export const DateObjectPicker: FC<DateOnlyPickerProps> = ({ disabled, onChange }
         textField: {
           size: "medium",
           label: "Select Date",
-        } as any,
+        },
       }}
     />
   )

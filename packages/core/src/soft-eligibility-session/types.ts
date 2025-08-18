@@ -1,11 +1,11 @@
 import type {
   DateObject,
   EligibleProvider,
+  ProviderEligibility,
   ServiceTypeId,
   ServiceTypeMergeStrategy,
   UsStateCode,
 } from "../types/index.ts"
-import { BridgeApi } from "@usebridge/api"
 
 /**
  * Configures the Soft Eligibility Session
@@ -72,8 +72,5 @@ export interface SoftEligibilitySessionState {
    * If the status is INELIGIBLE or ELIGIBLE, this contains the final set of ProviderEligibility resources
    * The key of the object is each ServiceType ID
    */
-  providerEligibility?: Record<
-    ServiceTypeId,
-    BridgeApi.providerEligibility.ProviderEligibilityCreateV1Response
-  >
+  providerEligibility?: Record<ServiceTypeId, ProviderEligibility>
 }

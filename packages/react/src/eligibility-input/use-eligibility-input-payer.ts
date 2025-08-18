@@ -1,14 +1,11 @@
 import { useEligibilityInput } from "./eligibility-input-context.js"
 import { useMemo } from "react"
-import { BridgeApi } from "@usebridge/api"
+import type { Payer } from "@usebridge/sdk-core"
 
 /**
  * Value and setter for the Payer being selected in the Eligibility Input
  */
-export function useEligibilityInputPayer(): [
-  BridgeApi.SearchPayerV1ResponseItem | null,
-  (payer: BridgeApi.SearchPayerV1ResponseItem | null) => void,
-] {
+export function useEligibilityInputPayer(): [Payer | null, (payer: Payer | null) => void] {
   const {
     payer: { value, set },
   } = useEligibilityInput()

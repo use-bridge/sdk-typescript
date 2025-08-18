@@ -3,11 +3,13 @@ import type {
   DateObject,
   EligibleProvider,
   EstimateSelection,
+  Policy,
+  ServiceEligibility,
   ServiceTypeId,
   ServiceTypeMergeStrategy,
   UsStateCode,
 } from "../types/index.js"
-import { BridgeApi } from "@usebridge/api"
+import type { IneligibleReason } from "./ineligibile-reasons.js"
 
 /**
  * Configures the Hard Eligibility Session
@@ -80,28 +82,6 @@ export interface HardEligibilityError {
    * Whether to require the Member ID, even if the Payer does not require it
    */
   forceMemberId?: boolean
-}
-
-/**
- * The reason why the patient isn't eligible
- * TODO Pull this stuff out into 'Ineligibility', without "hard" prefix
- */
-type HardEligibilityIneligibilityReasonCode =
-  // TODO This list is stubbed
-  "NOT_ACTIVE" | "HMO" | "PROVIDERS"
-
-/**
- * Explains why a patient isn't eligible
- */
-export interface HardEligibilityIneligibilityReason {
-  /**
-   * Code for referencing this reason
-   */
-  code: HardEligibilityIneligibilityReasonCode
-  /**
-   * User-friendly message to display
-   */
-  message: string
 }
 
 /**
@@ -195,16 +175,13 @@ export interface HardEligibilitySessionState {
   /**
    * The most recent Policy, if applicable
    */
-  policy?: BridgeApi.policies.PolicyCreateV2Response
+  policy?: Policy
 
   /**
    * If the ServiceEligibility resolved to eligible/ineligible, this contains the final set of ServiceEligibility
    * The key of the object is each ServiceType ID
    */
-  serviceEligibility?: Record<
-    ServiceTypeId,
-    BridgeApi.serviceEligibility.ServiceEligibilityCreateV2Response
-  >
+  serviceEligibility?: Record<ServiceTypeId, ServiceEligibility>
 
   /**
    * If eligible, the final patient responsibility determination
@@ -219,5 +196,5 @@ export interface HardEligibilitySessionState {
   /**
    * If the patient is INELIGIBLE, this contains the reason
    */
-  ineligibilityReason?: HardEligibilityIneligibilityReason
+  ineligibilityReason?: IneligibleReason
 }

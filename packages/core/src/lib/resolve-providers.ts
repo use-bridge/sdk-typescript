@@ -1,5 +1,4 @@
-import { BridgeApi } from "@usebridge/api"
-import type { ServiceTypeMergeStrategy } from "../types/index.js"
+import type { Provider, ServiceTypeMergeStrategy } from "../types/index.js"
 import { intersectionBy, uniqBy } from "lodash-es"
 
 /**
@@ -7,7 +6,7 @@ import { intersectionBy, uniqBy } from "lodash-es"
  */
 interface EligibilityResponse {
   status: "ELIGIBLE" | string
-  providers: BridgeApi.ProviderEligibilityCreateV1ResponseProvider[]
+  providers: Provider[]
 }
 
 /**

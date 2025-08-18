@@ -1,7 +1,6 @@
 import { EventEmitter } from "eventemitter3"
 import { v4 as uuidv4 } from "uuid"
 import type {
-  HardEligibilityIneligibilityReason,
   HardEligibilityPatientResponsibility,
   HardEligibilitySessionConfig,
   HardEligibilitySessionState,
@@ -10,14 +9,21 @@ import type {
 import { fromPairs, isEmpty, isNull } from "lodash-es"
 import { ServiceTypeRequiredError } from "../errors/service-type-required-error.js"
 import { AlreadySubmittingError } from "../errors/index.js"
-import { BridgeApi, BridgeApiClient } from "@usebridge/api"
+import { BridgeApiClient } from "@usebridge/api"
 import { dateObjectToDatestamp, dateToDateObject } from "../lib/date-object.js"
-import { errorFromPolicy } from "./error-from-policy.js"
+import { errorFromPolicy } from "./lib/error-from-policy.js"
 import { HardEligibilityErrors } from "./hard-eligibility-errors.js"
 import { TimeoutError, timeoutError } from "../lib/timeout-error.js"
 import { logger } from "../logger/sdk-logger.js"
-import { ineligibilityReasonFromServiceEligibility } from "./ineligibility-reason-from-service-eligibility.js"
 import { resolveProviders } from "../lib/resolve-providers.js"
+import type {
+  Policy,
+  ResolvedPolicy,
+  ResolvedServiceEligibility,
+  ServiceEligibility,
+} from "../types/index.js"
+import type { IneligibleReason } from "./ineligibile-reasons.js"
+import { ineligibilityReasonFromServiceEligibility } from "./lib/ineligibility-reason-from-service-eligibility.js"
 
 interface HardEligibilitySessionEvents {
   update: [HardEligibilitySessionState]
@@ -26,13 +32,6 @@ interface HardEligibilitySessionEvents {
 const DEFAULT_POLLING_INTERVAL_MS = 2_000 // 2 seconds
 const DEFAULT_POLICY_TIMEOUT_MS = 20_000 // 20 seconds
 const DEFAULT_ELIGIBILITY_TIMEOUT_MS = 20_000 // 20 seconds
-
-// TODO We could expose some renamed types more generally
-type Policy = BridgeApi.policies.PolicyGetV1Response
-type ResolvedPolicy = Policy & { status: "CONFIRMED" | "INVALID" }
-
-type ServiceEligibility = BridgeApi.serviceEligibility.ServiceEligibilityGetV1Response
-type ResolvedServiceEligibility = ServiceEligibility & { status: "ELIGIBLE" | "INELIGIBLE" }
 
 /**
  * Instance of a Hard Eligibility Session
@@ -458,7 +457,7 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
    */
   private ineligibilityReasonFromServiceEligibility(
     serviceEligibility: ResolvedServiceEligibility[],
-  ): HardEligibilityIneligibilityReason | null {
+  ): IneligibleReason | null {
     const { mergeStrategy } = this.sessionConfig
     // Combine the response eligibility status, based on strategy
     if (mergeStrategy === "UNION") {

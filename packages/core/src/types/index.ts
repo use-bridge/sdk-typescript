@@ -1,3 +1,5 @@
+import { BridgeApi } from "@usebridge/api"
+
 export * from "./config.js"
 export * from "./us-states.js"
 
@@ -55,3 +57,44 @@ export interface EligibleProvider {
    */
   externalId?: string
 }
+
+/**
+ * Common Payer resource
+ */
+export type Payer = BridgeApi.payers.PayerGetV1Response & BridgeApi.search.SearchPayerV1ResponseItem
+
+/**
+ * Collection of Payers from the search results
+ */
+export type PayerSearchResults = BridgeApi.SearchPayerV1Response & { items: Payer[] }
+
+/**
+ * Policy resource
+ */
+export type Policy = BridgeApi.policies.v2.PolicyCreateV2Response
+
+/**
+ * Policy resource that's reached a resolved state
+ */
+export type ResolvedPolicy = Policy & { status: "CONFIRMED" | "INVALID" }
+
+/**
+ * ProviderEligibility resource
+ */
+export type ProviderEligibility = BridgeApi.ProviderEligibilityCreateV1Response
+
+/**
+ * ServiceEligibility resource
+ */
+export type ServiceEligibility = BridgeApi.serviceEligibility.v2.ServiceEligibilityCreateV2Response
+
+/**
+ * ServiceEligibility resource that's reached a resolved state
+ */
+export type ResolvedServiceEligibility = ServiceEligibility & { status: "ELIGIBLE" | "INELIGIBLE" }
+
+/**
+ * Common Provider resource
+ */
+export type Provider = BridgeApi.ProviderEligibilityCreateV1ResponseProvider &
+  BridgeApi.serviceEligibility.ServiceEligibilityCreateV2ResponseProvider

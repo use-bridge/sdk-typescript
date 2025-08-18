@@ -6,12 +6,13 @@ import type {
   SoftEligibilitySubmissionArgs,
 } from "./types.js"
 import { AlreadySubmittingError } from "../errors/index.js"
-import { BridgeApi, BridgeApiClient } from "@usebridge/api"
+import { BridgeApiClient } from "@usebridge/api"
 import { dateObjectToDatestamp, dateToDateObject } from "../lib/date-object.js"
 import { fromPairs, isEmpty } from "lodash-es"
 import { ServiceTypeRequiredError } from "../errors/service-type-required-error.js"
 import { resolveProviders } from "../lib/resolve-providers.js"
 import { logger } from "../logger/sdk-logger.js"
+import type { ProviderEligibility } from "../types/index.js"
 
 /**
  * Events emitted by a Soft Eligibility Session
@@ -105,25 +106,20 @@ export class SoftEligibilitySession extends EventEmitter<SoftEligibilitySessionE
   private async createProviderEligibilityMap({
     payerId,
     state,
-  }: SoftEligibilitySubmissionArgs): Promise<
-    Record<string, BridgeApi.ProviderEligibilityCreateV1Response>
-  > {
-    const { serviceTypeIds, dateOfService } = this.sessionConfig
-
+  }: SoftEligibilitySubmissionArgs): Promise<Record<string, ProviderEligibility>> {
     // We need to make a call for each ServiceType ID, then come back with a map to the ProviderEligibility
-    return fromPairs<BridgeApi.ProviderEligibilityCreateV1Response>(
+    const { serviceTypeIds, dateOfService } = this.sessionConfig
+    return fromPairs<ProviderEligibility>(
       await Promise.all(
-        serviceTypeIds.map<Promise<[string, BridgeApi.ProviderEligibilityCreateV1Response]>>(
-          async (serviceTypeId) => [
+        serviceTypeIds.map<Promise<[string, ProviderEligibility]>>(async (serviceTypeId) => [
+          serviceTypeId,
+          await this.apiClient.providerEligibility.createProviderEligibility({
+            payerId,
+            location: { state },
+            dateOfService: dateObjectToDatestamp(dateOfService ?? dateToDateObject()),
             serviceTypeId,
-            await this.apiClient.providerEligibility.createProviderEligibility({
-              payerId,
-              location: { state },
-              dateOfService: dateObjectToDatestamp(dateOfService ?? dateToDateObject()),
-              serviceTypeId,
-            }),
-          ],
-        ),
+          }),
+        ]),
       ),
     )
   }

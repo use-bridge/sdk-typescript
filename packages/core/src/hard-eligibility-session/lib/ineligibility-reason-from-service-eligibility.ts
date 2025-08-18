@@ -1,6 +1,6 @@
-import { BridgeApi } from "@usebridge/api"
-import type { HardEligibilityIneligibilityReason } from "./types.js"
 import { filter, isEmpty } from "lodash-es"
+import type { IneligibleReason } from "../ineligibile-reasons.js"
+import type { ServiceEligibility } from "../../types/index.js"
 
 /**
  * For a given list of ServiceEligibility, returns the ineligibility reason if the status is INELIGIBLE
@@ -8,8 +8,8 @@ import { filter, isEmpty } from "lodash-es"
  * @throw {Error} if no ineligible services are found
  */
 export function ineligibilityReasonFromServiceEligibility(
-  serviceEligibility: BridgeApi.ServiceEligibilityGetV1Response[],
-): HardEligibilityIneligibilityReason {
+  serviceEligibility: ServiceEligibility[],
+): IneligibleReason {
   // If none are ineligible, throw an error (you shouldn't be calling this)
   const ineligibleServices = filter(serviceEligibility, { status: "INELIGIBLE" })
   if (isEmpty(ineligibleServices)) throw new Error("No ineligible services found")
