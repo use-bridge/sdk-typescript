@@ -6,7 +6,7 @@ import type {
   HardEligibilitySessionState,
   HardEligibilitySubmissionArgs,
 } from "./types.js"
-import { fromPairs, isEmpty, isNull } from "lodash-es"
+import { filter, find, fromPairs, isEmpty, isNull, maxBy, minBy } from "lodash-es"
 import { ServiceTypeRequiredError } from "../errors/service-type-required-error.js"
 import { AlreadySubmittingError } from "../errors/index.js"
 import { BridgeApiClient } from "@usebridge/api"
@@ -22,7 +22,7 @@ import type {
   ResolvedServiceEligibility,
   ServiceEligibility,
 } from "../types/index.js"
-import type { IneligibleReason } from "./ineligibile-reasons.js"
+import type { IneligibilityReason } from "./ineligibile-reasons.js"
 import { ineligibilityReasonFromServiceEligibility } from "./lib/ineligibility-reason-from-service-eligibility.js"
 import { HardEligibility } from "./hard-eligibility.js"
 
@@ -109,8 +109,8 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
 
     // If the Policy is INVALID, we need to handle explaining that back to the user
     if (resolvedPolicy.status === "INVALID") {
-      logger()?.info("HardEligibilitySession.submit.policyInvalid", { policy })
-      return this.updateState({ status: "POLICY_ERROR", error: errorFromPolicy(policy) })
+      logger()?.info("HardEligibilitySession.submit.policyInvalid", { resolvedPolicy })
+      return this.updateState({ status: "POLICY_ERROR", error: errorFromPolicy(resolvedPolicy) })
     }
 
     // We're going to submit and resolve all the ServiceEligibility we need
@@ -169,6 +169,12 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
 
     // We're eligible, parse out the estimate and send this back
     let patientResponsibility = this.getPatientResponsibility(nonNullEligibility)
+    // This is unexpected, should be guaranteed PatientResponsibility if we have something ELIGIBLE
+    if (!patientResponsibility) {
+      logger()?.error("HardEligibilitySession.submit.noPatientResponsibility")
+      throw new Error("No patientResponsibility found in ServiceEligibility")
+    }
+
     logger()?.info("HardEligibilitySession.submit.eligible", { providers, patientResponsibility })
     return this.updateState({
       status: "ELIGIBLE",
@@ -413,23 +419,48 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
    */
   private getPatientResponsibility(
     serviceEligibility: ResolvedServiceEligibility[],
-  ): HardEligibilityPatientResponsibility {
+  ): HardEligibilityPatientResponsibility | null {
     // If it's empty, we can't do anything
     if (isEmpty(serviceEligibility)) throw new Error("No ServiceEligibility in getEstimate")
 
-    // TODO Sanity check, everything must have a patientResponsibility
+    // Filter to only the ELIGIBLE ServiceEligibility
+    const eligibleServiceEligibility = filter(serviceEligibility, { status: "ELIGIBLE" })
 
-    switch (this.sessionConfig.estimateSelection?.mode ?? "HIGHEST") {
-      // Return the highest dollar value
-      case "HIGHEST":
+    // Sanity check that these all have a ServiceEligibility
+    if (eligibleServiceEligibility.some((se) => !se.patientResponsibility))
+      throw new Error(`Unexpected ServiceEligibility ELIGIBLE without patientResponsibility`)
 
-      // Return the lowest dollar value
-      case "LOWEST":
+    // Finds the ServiceEligibility that's relevant for us to grab the estimate
+    const findEstimateServiceEligibility = () => {
+      const { estimateSelection } = this.sessionConfig
+      switch (estimateSelection?.mode ?? "HIGHEST") {
+        // Return the highest dollar value
+        case "HIGHEST":
+          return maxBy(eligibleServiceEligibility, (s) => s.patientResponsibility!.total)
+        // Return the lowest dollar value
+        case "LOWEST":
+          return minBy(eligibleServiceEligibility, (s) => s.patientResponsibility!.total)
+        // Return the value from a specific ServiceType
+        case "SERVICE_TYPE":
+          // Fetch a specific ServiceType by ID. If that fails, fallback to default (HIGHEST)
+          const id = estimateSelection?.serviceTypeId
+          const matchingServiceEligibility = find(eligibleServiceEligibility, { id })
+          if (matchingServiceEligibility) return matchingServiceEligibility
+          logger()?.warn("HardEligibilitySession.getPatientResponsibility.serviceTypeNotFound", {
+            id,
+          })
+          return maxBy(eligibleServiceEligibility, (s) => s.patientResponsibility!.total)
+      }
+    }
 
-      // Return the value from a specific ServiceType
-      case "SERVICE_TYPE":
-        // TODO Implement
-        return { estimate: { amount: 100_00 } }
+    // Grab the ServiceEligibility we want to use, transform into our result
+    const estimateServiceEligibility = findEstimateServiceEligibility()
+    if (!estimateServiceEligibility) return null
+
+    // Transform into what we need, we can be sure we have a patientResponsibility here, conditional is a maybe
+    return {
+      estimate: estimateServiceEligibility.patientResponsibility!,
+      conditionalEstimate: estimateServiceEligibility.conditionalPatientResponsibilities?.at(0),
     }
   }
 
@@ -447,7 +478,7 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
    */
   private ineligibilityReasonFromServiceEligibility(
     serviceEligibility: ResolvedServiceEligibility[],
-  ): IneligibleReason | null {
+  ): IneligibilityReason | null {
     const { mergeStrategy } = this.sessionConfig
     // Combine the response eligibility status, based on strategy
     if (mergeStrategy === "UNION") {

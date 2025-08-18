@@ -1,5 +1,5 @@
 import { filter, isEmpty } from "lodash-es"
-import type { IneligibleReason } from "../ineligibile-reasons.js"
+import type { IneligibilityReason } from "../ineligibile-reasons.js"
 import type { ServiceEligibility } from "../../types/index.js"
 
 /**
@@ -9,7 +9,7 @@ import type { ServiceEligibility } from "../../types/index.js"
  */
 export function ineligibilityReasonFromServiceEligibility(
   serviceEligibility: ServiceEligibility[],
-): IneligibleReason {
+): IneligibilityReason {
   // If none are ineligible, throw an error (you shouldn't be calling this)
   const ineligibleServices = filter(serviceEligibility, { status: "INELIGIBLE" })
   if (isEmpty(ineligibleServices)) throw new Error("No ineligible services found")

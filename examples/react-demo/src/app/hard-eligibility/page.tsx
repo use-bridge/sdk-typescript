@@ -7,8 +7,11 @@ import { Grid, Stack } from "@mui/material"
 import { PageHeader } from "../components/page-header"
 import { HardligibilityConfigForm } from "./hard-eligibility-config-form"
 import { HardEligibilitySessionForm } from "./hard-eligibility-session-form"
+import { HardEligibilityEligibleProviderList } from "./hard-eligibility-providers"
+import { EstimateView } from "./estimate-view"
 
 /**
+ *
  * This page allows the user to configure the inputs for a `createHardEligibilitySession` call
  * ^ In practice, this would be done behind the scenes by the config/backend
  *
@@ -44,7 +47,10 @@ export default function HardEligibilityPage() {
               <HardEligibilitySessionForm />
             </Grid>
             <Grid size={4}>
-              <div>Hard Eligibility Eligible Provider List</div>
+              <Stack spacing={4}>
+                <EstimateView />
+                <HardEligibilityEligibleProviderList />
+              </Stack>
             </Grid>
           </HardEligibilityProvider>
         )}

@@ -33,30 +33,8 @@ export type ServiceTypeMergeStrategy = "UNION" | "INTERSECTION"
  * SERVICE_TYPE - The estimate for a specific ServiceType is selected
  */
 export type EstimateSelection =
-  | { mode: "HIGHEST" | "LOWEST" }
+  | { mode: "HIGHEST" | "LOWEST"; serviceTypeId: never }
   | { mode: "SERVICE_TYPE"; serviceTypeId: string }
-
-/**
- * Describes an eligible Provider
- */
-export interface EligibleProvider {
-  /**
-   * The Bridge ID of the Provider (prv_xxx)
-   */
-  id: string
-  /**
-   * The full name of the Provide
-   **/
-  name: string
-  /**
-   * The NPI
-   **/
-  npi: string
-  /**
-   * If configured, the Bridge external ID of the Provider
-   */
-  externalId?: string
-}
 
 /**
  * Common Payer resource
@@ -98,3 +76,15 @@ export type ResolvedServiceEligibility = ServiceEligibility & { status: "ELIGIBL
  */
 export type Provider = BridgeApi.ProviderEligibilityCreateV1ResponseProvider &
   BridgeApi.serviceEligibility.ServiceEligibilityCreateV2ResponseProvider
+
+/**
+ * PatientResponsibility resource
+ */
+export type PatientResponsibility =
+  BridgeApi.serviceEligibility.v2.ServiceEligibilityCreateV2ResponsePatientResponsibility
+
+/**
+ * ConditionalPatientResponsibility resource
+ */
+export type ConditionalPatientResponsibility =
+  BridgeApi.serviceEligibility.v2.ServiceEligibilityCreateV2ResponseConditionalPatientResponsibility

@@ -14,7 +14,7 @@ export const SoftEligibilitySessionForm: FC = () => {
 
   return (
     <Stack spacing={2}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center">
+      <Stack>
         <Typography variant="h6">SoftEligibilitySession</Typography>
         <Typography fontFamily="monospace">{status}</Typography>
       </Stack>

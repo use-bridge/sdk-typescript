@@ -1,15 +1,17 @@
 // TODO Replace with a reference to generated API client, Policy response
 import type {
+  ConditionalPatientResponsibility,
   DateObject,
-  EligibleProvider,
   EstimateSelection,
+  PatientResponsibility,
   Policy,
+  Provider,
   ServiceEligibility,
   ServiceTypeId,
   ServiceTypeMergeStrategy,
   UsStateCode,
 } from "../types/index.js"
-import type { IneligibleReason } from "./ineligibile-reasons.js"
+import type { IneligibilityReason } from "./ineligibile-reasons.js"
 
 /**
  * Configures the Hard Eligibility Session
@@ -139,9 +141,14 @@ export interface HardEligibilitySubmissionArgs {
  * The expected PatientResponsibility for an ELIGIBLE HardEligibilitySession
  */
 export interface HardEligibilityPatientResponsibility {
-  // TODO
-  estimate: { amount: number }
-  conditionalEstimate?: { amount: number }
+  /**
+   * The primary estimate for the patient
+   */
+  estimate: PatientResponsibility
+  /**
+   * A conditional estimate, if applicable
+   */
+  conditionalEstimate?: ConditionalPatientResponsibility
 }
 
 /**
@@ -191,10 +198,10 @@ export interface HardEligibilitySessionState {
   /**
    * If the status is ELIGIBLE, this contains the final set of EligibleProviders
    */
-  providers?: ReadonlyArray<EligibleProvider>
+  providers?: Provider[]
 
   /**
    * If the patient is INELIGIBLE, this contains the reason
    */
-  ineligibilityReason?: IneligibleReason
+  ineligibilityReason?: IneligibilityReason
 }

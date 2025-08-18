@@ -30,7 +30,7 @@ export function usePayerAutocomplete(
   /**
    * The results to display currently
    */
-  results: ReadonlyArray<Payer>
+  results: Payer[]
 } {
   // We expect a 'BridgeSdk' to be available in the context
   const payerSearch = usePayerSearch()

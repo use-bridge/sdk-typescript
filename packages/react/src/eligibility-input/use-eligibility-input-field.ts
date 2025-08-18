@@ -78,14 +78,15 @@ export function useEligibilityInputField<F extends Field, T = EligibilityInputSt
       isValid = Boolean(input.dateOfBirth.value)
       break
     case "memberId":
-      isVisible = requirePatient
-      isRequired = Boolean(
+      let memberIdIsRequired = Boolean(
         // Required if we have a Payer selected that requires a Member ID, we need it
         (requirePatient && input.payer.value?.memberId) ||
           // OR, if we have an error that's asking for us to force it
           hardEligibilityContext?.state.error?.forceMemberId,
       )
-      isValid = Boolean(input.memberId.value.trim())
+      isVisible = memberIdIsRequired
+      isRequired = memberIdIsRequired
+      isValid = Boolean(input.memberId.value.trim()) || !memberIdIsRequired
       break
     default:
       throw new Error(`Unknown field: ${field}`)

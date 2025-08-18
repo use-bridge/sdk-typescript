@@ -46,7 +46,7 @@ export function useHardEligibilitySubmit(): {
       memberId: isMemberIdVisible ? memberId.value : undefined,
       dateOfBirth: dateToDateObject(dateOfBirth.value),
     })
-  }, [session, payer, state])
+  }, [session, payer, state, firstName, lastName, dateOfBirth, memberId])
 
   return useMemo(() => ({ isDisabled, submit }), [isDisabled, submit])
 }

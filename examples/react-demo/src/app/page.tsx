@@ -1,11 +1,12 @@
 "use client"
 
-import { Box, Link } from "@mui/material"
+import { Link, Stack } from "@mui/material"
 
 export default function Page() {
   return (
-    <Box sx={{ p: 4, maxWidth: 520 }}>
-      <Link href="/payer-search">Payer Search (Autocomplete)</Link>
-    </Box>
+    <Stack spacing={2}>
+      <Link href="/soft-eligibility">Soft Eligibility</Link>
+      <Link href="/hard-eligibility">Hard Eligibility</Link>
+    </Stack>
   )
 }
