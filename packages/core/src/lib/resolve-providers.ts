@@ -22,8 +22,7 @@ export function resolveProviders(
   switch (mergeStrategy ?? "UNION") {
     // UNION: combine all providers from eligible responses
     case "UNION":
-      return
-      uniqBy(
+      return uniqBy(
         responses
           .filter(({ status }) => status === "ELIGIBLE")
           .flatMap(({ providers }) => providers),

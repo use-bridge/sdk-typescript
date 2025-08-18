@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useIsMounted } from "usehooks-ts"
-import { retryLoop, RetryLoopCancelledError } from "../lib/retry-forever.js"
+import { retryLoop, RetryLoopCancelledError } from "../lib/retry-loop.js"
 import { usePayerSearch } from "./use-payer-search.js"
 import { BridgeApi } from "@usebridge/api"
 

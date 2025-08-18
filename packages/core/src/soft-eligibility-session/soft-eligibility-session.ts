@@ -63,12 +63,12 @@ export class SoftEligibilitySession extends EventEmitter<SoftEligibilitySessionE
     try {
       // We need to make a call for each ServiceType ID, then come back with a map to the ProviderEligibility
       const providerEligibility = await this.createProviderEligibilityMap(args)
-      logger()?.info("SoftEligibilitySession.providerEligibility.created", { providerEligibility })
+      logger()?.info("SoftEligibilitySession.submit.providerEligibility", { providerEligibility })
       this.updateState({ providerEligibility })
 
       // Based on the merge Strategy, who do we have?
       const providers = resolveProviders(Object.values(providerEligibility))
-      logger()?.info("SoftEligibilitySession.providers.resolved", { providers })
+      logger()?.info("SoftEligibilitySession.submit.providers", { providers })
       this.updateState({ providers })
 
       // If there are none, we're INELIGIBLE
@@ -78,18 +78,18 @@ export class SoftEligibilitySession extends EventEmitter<SoftEligibilitySessionE
       }
 
       // Otherwise, this is good
-      logger()?.info("SoftEligibilitySession resolved, eligible")
+      logger()?.info("SoftEligibilitySession.submit.eligible")
       return this.updateState({ status: "ELIGIBLE" })
     } catch (err) {
       // If anything goes wrong, we need to try again, and then resolve with the final state
-      logger()?.error("SoftEligibilitySession error", { id: this.id, err })
+      logger()?.error("SoftEligibilitySession.submit.error", { id: this.id, err })
       return this.setState({ args, status: "ERROR" })
     }
   }
 
   private setState(state: SoftEligibilitySessionState): SoftEligibilitySessionState {
     this.#state = state
-    logger()?.debug?.("SoftEligibilitySession state updated", { id: this.id, state })
+    logger()?.debug?.("SoftEligibilitySession.setState", { id: this.id, state })
     this.emit("update", state)
     return state
   }
