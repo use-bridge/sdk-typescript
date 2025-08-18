@@ -5,12 +5,13 @@ import type {
   SoftEligibilitySessionState,
   SoftEligibilitySubmissionArgs,
 } from "./types.js"
-import type { BridgeSdkConfig } from "../types/index.js"
 import { AlreadySubmittingError } from "../errors/index.js"
 import { BridgeApi, BridgeApiClient } from "@usebridge/api"
 import { dateObjectToDatestamp, dateToDateObject } from "../lib/date-object.js"
-import { fromPairs, intersectionBy, isEmpty, uniqBy } from "lodash-es"
+import { fromPairs, isEmpty } from "lodash-es"
 import { ServiceTypeRequiredError } from "../errors/service-type-required-error.js"
+import { resolveProviders } from "../lib/resolve-providers.js"
+import { logger } from "../logger/sdk-logger.js"
 
 /**
  * Events emitted by a Soft Eligibility Session
@@ -29,14 +30,13 @@ export class SoftEligibilitySession extends EventEmitter<SoftEligibilitySessionE
 
   constructor(
     private readonly apiClient: BridgeApiClient,
-    private readonly config: BridgeSdkConfig,
     private readonly sessionConfig: SoftEligibilitySessionConfig,
   ) {
     super()
     if (isEmpty(sessionConfig.serviceTypeIds)) throw new ServiceTypeRequiredError()
     this.id = uuidv4()
     this.#state = { status: "PENDING" }
-    this.config.logger?.info("SoftEligibilitySession created", { id: this.id, sessionConfig })
+    logger()?.info("SoftEligibilitySession created", { id: this.id, sessionConfig })
   }
 
   /**
@@ -52,8 +52,7 @@ export class SoftEligibilitySession extends EventEmitter<SoftEligibilitySessionE
    * @throws {AlreadySubmittingError} if a request is already in-flight
    */
   async submit(args: SoftEligibilitySubmissionArgs): Promise<SoftEligibilitySessionState> {
-    this.config.logger?.info("SoftEligibilitySession.submit", { id: this.id, args })
-    const { payerId, state } = args
+    logger()?.info("SoftEligibilitySession.submit", { id: this.id, args })
 
     // One request at a time
     if (this.#state.status === "SUBMITTING") throw new AlreadySubmittingError()
@@ -62,72 +61,70 @@ export class SoftEligibilitySession extends EventEmitter<SoftEligibilitySessionE
     this.setState({ args, status: "SUBMITTING" })
 
     try {
-      const { serviceTypeIds, mergeStrategy, dateOfService } = this.sessionConfig
-
       // We need to make a call for each ServiceType ID, then come back with a map to the ProviderEligibility
-      const providerEligibility = fromPairs<BridgeApi.ProviderEligibilityCreateV1Response>(
-        await Promise.all(
-          serviceTypeIds.map<Promise<[string, BridgeApi.ProviderEligibilityCreateV1Response]>>(
-            async (serviceTypeId) => [
-              serviceTypeId,
-              await this.apiClient.providerEligibility.createProviderEligibility({
-                payerId,
-                location: { state },
-                dateOfService: dateObjectToDatestamp(dateOfService ?? dateToDateObject()),
-                serviceTypeId,
-              }),
-            ],
-          ),
-        ),
-      )
-      // Based on the merge Strategy, what can we do?
-      let providers
+      const providerEligibility = await this.createProviderEligibilityMap(args)
+      logger()?.info("SoftEligibilitySession.providerEligibility.created", { providerEligibility })
+      this.updateState({ providerEligibility })
 
-      // If it's UNION, we return all unique payers from any 'ELIGIBLE' results
-      // If there are no Providers in the end, we're INELIGIBLE
-      if (mergeStrategy === "UNION") {
-        // Combine all the ELIGIBLE Providers, then deduplicate by ID
-        providers = uniqBy(
-          Object.values(providerEligibility)
-            .filter((pe) => pe.status === "ELIGIBLE")
-            .flatMap((pe) => pe.providers),
-          (p) => p.id,
-        )
-      }
-      // If it's INTERSECTION, we need to find the intersection of all Providers
-      // Naturally, the ProviderEligibility will have no Providers if not ELIGIBLE
-      // So, all we have to do is intersect ALL results and infer eligibility from what's left
-      else if (mergeStrategy === "INTERSECTION") {
-        // We can use intersectionBy
-        providers = intersectionBy(
-          ...Object.values(providerEligibility).map((pe) => pe.providers),
-          (p) => p.id,
-        )
-      } else {
-        // This should never happen
-        throw new Error(`The mergeStrategy ${mergeStrategy} is not supported`)
-      }
+      // Based on the merge Strategy, who do we have?
+      const providers = resolveProviders(Object.values(providerEligibility))
+      logger()?.info("SoftEligibilitySession.providers.resolved", { providers })
+      this.updateState({ providers })
 
       // If there are none, we're INELIGIBLE
       if (isEmpty(providers)) {
-        this.config.logger?.info("SoftEligibilitySession resolved, no providers")
-        return this.setState({ args, status: "INELIGIBLE", providerEligibility })
+        logger()?.info("SoftEligibilitySession.resolved.noProviders")
+        return this.updateState({ status: "INELIGIBLE" })
       }
 
       // Otherwise, this is good
-      this.config.logger?.info("SoftEligibilitySession resolved, eligible")
-      return this.setState({ args, status: "ELIGIBLE", providers, providerEligibility })
+      logger()?.info("SoftEligibilitySession resolved, eligible")
+      return this.updateState({ status: "ELIGIBLE" })
     } catch (err) {
       // If anything goes wrong, we need to try again, and then resolve with the final state
-      this.config.logger?.error("SoftEligibilitySession error", { id: this.id, err })
+      logger()?.error("SoftEligibilitySession error", { id: this.id, err })
       return this.setState({ args, status: "ERROR" })
     }
   }
 
   private setState(state: SoftEligibilitySessionState): SoftEligibilitySessionState {
     this.#state = state
-    this.config?.logger?.debug?.("SoftEligibilitySession state updated", { id: this.id, state })
+    logger()?.debug?.("SoftEligibilitySession state updated", { id: this.id, state })
     this.emit("update", state)
     return state
+  }
+
+  private updateState(updates: Partial<SoftEligibilitySessionState>): SoftEligibilitySessionState {
+    logger()?.info("SoftEligibilitySession.updateState", { id: this.id, updates })
+    return this.setState({ ...this.#state, ...updates })
+  }
+
+  /**
+   * Creates a map of ProviderEligibility by ServiceType ID
+   */
+  private async createProviderEligibilityMap({
+    payerId,
+    state,
+  }: SoftEligibilitySubmissionArgs): Promise<
+    Record<string, BridgeApi.ProviderEligibilityCreateV1Response>
+  > {
+    const { serviceTypeIds, dateOfService } = this.sessionConfig
+
+    // We need to make a call for each ServiceType ID, then come back with a map to the ProviderEligibility
+    return fromPairs<BridgeApi.ProviderEligibilityCreateV1Response>(
+      await Promise.all(
+        serviceTypeIds.map<Promise<[string, BridgeApi.ProviderEligibilityCreateV1Response]>>(
+          async (serviceTypeId) => [
+            serviceTypeId,
+            await this.apiClient.providerEligibility.createProviderEligibility({
+              payerId,
+              location: { state },
+              dateOfService: dateObjectToDatestamp(dateOfService ?? dateToDateObject()),
+              serviceTypeId,
+            }),
+          ],
+        ),
+      ),
+    )
   }
 }

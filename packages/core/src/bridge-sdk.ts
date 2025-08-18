@@ -60,13 +60,13 @@ export class BridgeSdk {
    * Creates a new Soft Eligibility Session
    */
   createSoftEligibilitySession(config: SoftEligibilitySessionConfig): SoftEligibilitySession {
-    return new SoftEligibilitySession(this.#client, this.config, config)
+    return new SoftEligibilitySession(this.#client, config)
   }
 
   /**
    * Creates a new Hard Eligibility Session
    */
   createHardEligibilitySession(config: HardEligibilitySessionConfig): HardEligibilitySession {
-    return new HardEligibilitySession(this.#client, this.config, config)
+    return new HardEligibilitySession(this.#client, config)
   }
 }

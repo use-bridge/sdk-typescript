@@ -28,8 +28,8 @@ export const HardEligibilityErrors: Record<HardEligibilityErrorCode, HardEligibi
     retryable: true,
     forceMemberId: false,
   },
-  PAYER_TIMEOUT: {
-    code: "PAYER_TIMEOUT",
+  TIMEOUT: {
+    code: "TIMEOUT",
     message: "Payer timeout, please retry",
     retryable: true,
     forceMemberId: false,

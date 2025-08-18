@@ -1,13 +1,13 @@
 import { EventEmitter } from "eventemitter3"
 import { v4 as uuidv4 } from "uuid"
 import type {
+  HardEligibilityIneligibilityReason,
   HardEligibilityPatientResponsibility,
   HardEligibilitySessionConfig,
   HardEligibilitySessionState,
   HardEligibilitySubmissionArgs,
 } from "./types.js"
-import type { BridgeSdkConfig } from "../types/index.js"
-import { fromPairs, isEmpty, isNull, uniqBy } from "lodash-es"
+import { fromPairs, isEmpty, isNull } from "lodash-es"
 import { ServiceTypeRequiredError } from "../errors/service-type-required-error.js"
 import { AlreadySubmittingError } from "../errors/index.js"
 import { BridgeApi, BridgeApiClient } from "@usebridge/api"
@@ -17,6 +17,7 @@ import { HardEligibilityErrors } from "./hard-eligibility-errors.js"
 import { TimeoutError, timeoutError } from "../lib/timeout-error.js"
 import { logger } from "../logger/sdk-logger.js"
 import { ineligibilityReasonFromServiceEligibility } from "./ineligibility-reason-from-service-eligibility.js"
+import { resolveProviders } from "../lib/resolve-providers.js"
 
 interface HardEligibilitySessionEvents {
   update: [HardEligibilitySessionState]
@@ -43,7 +44,6 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
 
   constructor(
     private readonly apiClient: BridgeApiClient,
-    private readonly config: BridgeSdkConfig,
     private readonly sessionConfig: HardEligibilitySessionConfig,
   ) {
     super()
@@ -148,41 +148,15 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
       ),
     })
 
-    // Given the merge strategy, determine the final state
-    const { mergeStrategy } = this.sessionConfig
-    let providers
-
-    if (mergeStrategy === "UNION") {
-      // If all the ServiceEligibility are INELIGIBLE, we're INELIGIBLE
-      if (nonNullEligibility.every((se) => se.status === "INELIGIBLE")) {
-        logger()?.info("HardEligibilitySession.submit.noEligibleServiceTypes")
-        return this.updateState({
-          status: "INELIGIBLE",
-          ineligibilityReason: ineligibilityReasonFromServiceEligibility(nonNullEligibility),
-        })
-      }
-      // Combine all the ELIGIBLE Providers, then deduplicate by ID
-      providers = uniqBy(
-        nonNullEligibility.filter((pe) => pe.status === "ELIGIBLE").flatMap((pe) => pe.providers),
-        (p) => p.id,
-      )
-    } else if (mergeStrategy === "INTERSECTION") {
-      // If any of the ServiceEligibility are INELIGIBLE, we're INELIGIBLE
-      if (nonNullEligibility.some(({ status }) => status === "INELIGIBLE")) {
-        logger()?.info("HardEligibilitySession.submit.ineligibleServiceTypes")
-        return this.updateState({
-          status: "INELIGIBLE",
-          ineligibilityReason: ineligibilityReasonFromServiceEligibility(nonNullEligibility),
-        })
-      }
-      // Everything must be eligible, so, we can just intersect all the Providers
-      providers = uniqBy(
-        nonNullEligibility.flatMap((se) => se.providers),
-        (p) => p.id,
-      )
-    } else {
-      throw new Error(`The mergeStrategy ${mergeStrategy} is not supported`)
+    // Resolve the combined eligibility status
+    const ineligibilityReason = this.ineligibilityReasonFromServiceEligibility(nonNullEligibility)
+    if (ineligibilityReason) {
+      logger()?.info("HardEligibilitySession.submit.ineligible")
+      return this.updateState({ status: "INELIGIBLE", ineligibilityReason })
     }
+
+    // Resolve the Providers
+    const providers = resolveProviders(nonNullEligibility)
 
     // If there are no Providers, we're INELIGIBLE even if the plan covers it
     if (isEmpty(providers)) {
@@ -194,10 +168,12 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
     }
 
     // We're eligible, parse out the estimate and send this back
+    let patientResponsibility = this.getPatientResponsibility(nonNullEligibility)
+    logger()?.info("HardEligibilitySession.submit.eligible", { providers, patientResponsibility })
     return this.updateState({
       status: "ELIGIBLE",
       providers,
-      patientResponsibility: this.getPatientResponsibility(nonNullEligibility),
+      patientResponsibility,
     })
   }
 
@@ -474,5 +450,33 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
    */
   private dateOfService(): string {
     return dateObjectToDatestamp(this.sessionConfig.dateOfService ?? dateToDateObject())
+  }
+
+  /**
+   * Given the merge strategy, and the list of ServiceEligibility, figure out the ineligibility reason
+   * @return the primary ineligibility reason, or null if eligible
+   */
+  private ineligibilityReasonFromServiceEligibility(
+    serviceEligibility: ResolvedServiceEligibility[],
+  ): HardEligibilityIneligibilityReason | null {
+    const { mergeStrategy } = this.sessionConfig
+    // Combine the response eligibility status, based on strategy
+    if (mergeStrategy === "UNION") {
+      // If all the ServiceEligibility are INELIGIBLE, we're INELIGIBLE
+      if (serviceEligibility.every((se) => se.status === "INELIGIBLE")) {
+        logger()?.info("HardEligibilitySession.submit.noEligibleServiceTypes")
+        return ineligibilityReasonFromServiceEligibility(serviceEligibility)
+      }
+    } else if (mergeStrategy === "INTERSECTION") {
+      // If any of the ServiceEligibility are INELIGIBLE, we're INELIGIBLE
+      if (serviceEligibility.some(({ status }) => status === "INELIGIBLE")) {
+        logger()?.info("HardEligibilitySession.submit.ineligibleServiceTypes")
+        return ineligibilityReasonFromServiceEligibility(serviceEligibility)
+      }
+    } else {
+      throw new Error(`The mergeStrategy ${mergeStrategy} is not supported`)
+    }
+    // If these didn't hit, return null (eligible)
+    return null
   }
 }
