@@ -1,11 +1,12 @@
 "use client"
 
-import { useCreateHardEligibilitySession } from "@usebridge/sdk-react"
+import { HardEligibilityProvider, useCreateHardEligibilitySession } from "@usebridge/sdk-react"
 import { HardEligibilitySession } from "@usebridge/sdk-core"
 import { useState } from "react"
 import { Grid, Stack } from "@mui/material"
 import { PageHeader } from "../components/page-header"
 import { HardligibilityConfigForm } from "./hard-eligibility-config-form"
+import { HardEligibilitySessionForm } from "./hard-eligibility-session-form"
 
 /**
  * This page allows the user to configure the inputs for a `createHardEligibilitySession` call
@@ -37,6 +38,16 @@ export default function HardEligibilityPage() {
             onSubmit={(config) => setSession(createSession(config))}
           />
         </Grid>
+        {session && (
+          <HardEligibilityProvider session={session}>
+            <Grid size={4}>
+              <HardEligibilitySessionForm />
+            </Grid>
+            <Grid size={4}>
+              <div>Hard Eligibility Eligible Provider List</div>
+            </Grid>
+          </HardEligibilityProvider>
+        )}
       </Grid>
     </Stack>
   )

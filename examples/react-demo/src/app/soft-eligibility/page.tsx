@@ -5,7 +5,7 @@ import { PageHeader } from "../components/page-header"
 import { Grid, Stack } from "@mui/material"
 import { SoftEligibilitySession } from "@usebridge/sdk-core"
 import { SoftEligibilityProvider, useCreateSoftEligibilitySession } from "@usebridge/sdk-react"
-import { SoftEligibilitySessionExample } from "./soft-eligibility-session-example"
+import { SoftEligibilitySessionForm } from "./soft-eligibility-session-form"
 import { SoftEligibilityEligibleProviderList } from "./soft-eligibility-providers"
 import { SoftEligibilityConfigForm } from "./soft-eligibility-config-form"
 
@@ -41,7 +41,7 @@ export default function SoftEligibilityPage() {
         {session && (
           <SoftEligibilityProvider session={session}>
             <Grid size={4}>
-              <SoftEligibilitySessionExample />
+              <SoftEligibilitySessionForm />
             </Grid>
             <Grid size={4}>
               <SoftEligibilityEligibleProviderList />

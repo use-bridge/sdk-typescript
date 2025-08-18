@@ -27,7 +27,7 @@ export function dateObjectToDate(dateObject: DateObject): Date {
  * Converts a Date to a DateObject
  * @param date the Date to convert, falsy to use `new Date()`
  */
-export function dateToDateObject(date?: Date): DateObject {
+export function dateToDateObject(date?: Date | null): DateObject {
   const dateToConvert = date ?? new Date()
   return {
     year: dateToConvert.getFullYear().toString(),

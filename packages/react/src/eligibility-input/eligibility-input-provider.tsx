@@ -18,7 +18,7 @@ export const EligibilityInputProvider: FC<PropsWithChildren> = ({ children }) =>
   if (!storeRef.current) {
     let requirePatient
     if (softEligibilityContext) requirePatient = false
-    if (hardEligibilityContext) requirePatient = true
+    else if (hardEligibilityContext) requirePatient = true
     else throw new Error("Missing SoftEligibilityContext or HardEligibilityContext")
     storeRef.current = createEligibilityInputStore(requirePatient)
   }

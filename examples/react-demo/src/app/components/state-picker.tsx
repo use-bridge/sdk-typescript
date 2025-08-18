@@ -12,7 +12,7 @@ export const StatePicker = () => {
       select
       label="State"
       size="medium"
-      value={value}
+      value={value ?? ""}
       onChange={(e) => setValue(e.target.value as UsStateCode)}
     >
       {Object.entries(UsStateMap).map(([code, name]) => (
