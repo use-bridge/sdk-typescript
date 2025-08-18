@@ -2,17 +2,13 @@
 
 import { useState } from "react"
 import { Autocomplete, CircularProgress, TextField } from "@mui/material"
-import { useEligibilityInputPayer, usePayerAutocomplete } from "@usebridge/sdk-react"
+import { useEligibilityInputField, usePayerAutocomplete } from "@usebridge/sdk-react"
 import type { Payer } from "@usebridge/sdk-core"
 
-interface PayerAutocompleteFieldProps {
-  disabled?: boolean
-}
-
-export const PayerAutocompleteField = ({ disabled }: PayerAutocompleteFieldProps) => {
+export const PayerAutocompleteField = () => {
   const [inputValue, setInputValue] = useState("")
   const { results, isLoading } = usePayerAutocomplete(inputValue, { limit: 50 })
-  const [value, setValue] = useEligibilityInputPayer()
+  const { value, setValue, isDisabled } = useEligibilityInputField("payer")
 
   return (
     <Autocomplete<Payer>
@@ -28,7 +24,7 @@ export const PayerAutocompleteField = ({ disabled }: PayerAutocompleteFieldProps
       renderInput={({ InputProps, InputLabelProps, ...params }) => (
         <TextField
           {...params}
-          disabled={Boolean(disabled)}
+          disabled={isDisabled}
           variant="outlined"
           size="medium"
           label="Payer"

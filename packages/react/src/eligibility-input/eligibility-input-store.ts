@@ -36,9 +36,6 @@ export interface EligibilityInputState {
     value: string
     set: (memberId: string) => void
   }
-
-  forceMemberId: boolean
-  setForceMemberId: (force: boolean) => void
 }
 
 export function createEligibilityInputStore(requirePatient: boolean) {
@@ -69,8 +66,5 @@ export function createEligibilityInputStore(requirePatient: boolean) {
       value: "",
       set: (memberId) => set((s) => ({ ...s, memberId: { ...s.memberId, value: memberId } })),
     },
-
-    forceMemberId: false,
-    setForceMemberId: (force) => set((s) => ({ ...s, forceMemberId: force })),
   }))
 }

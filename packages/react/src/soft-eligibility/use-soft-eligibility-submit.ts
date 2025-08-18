@@ -1,6 +1,6 @@
 import { useCallback } from "react"
-import { useEligibilityInput } from "../eligibility-input/index.js"
 import { useSoftEligibilitySession } from "./use-soft-eligibility.js"
+import { useEligibilityInput } from "../eligibility-input/use-eligibility-input.js"
 
 /**
  * Returns a function to submit requests into the Soft Eligibility Session

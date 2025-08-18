@@ -1,7 +1,7 @@
 import { type FC, type PropsWithChildren } from "react"
 import { SoftEligibilitySession } from "@usebridge/sdk-core"
-import { EligibilityInputProvider } from "../eligibility-input/index.js"
 import { SoftEligibilityContext } from "./soft-eligibility-context.js"
+import { EligibilityInputProvider } from "../eligibility-input/eligibility-input-provider.js"
 
 interface SoftEligibilityProviderProps extends PropsWithChildren {
   session: SoftEligibilitySession

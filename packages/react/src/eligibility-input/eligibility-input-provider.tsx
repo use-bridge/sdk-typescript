@@ -1,15 +1,12 @@
-import { createContext, type FC, type PropsWithChildren, useContext, useRef } from "react"
+import { type FC, type PropsWithChildren, useContext, useRef } from "react"
+import { type StoreApi } from "zustand"
 import {
   createEligibilityInputStore,
   type EligibilityInputState,
 } from "./eligibility-input-store.js"
-import { type StoreApi, useStore } from "zustand"
 import { SoftEligibilityContext } from "../soft-eligibility/soft-eligibility-context.js"
-
-/**
- * Context holding the EligibilityInputStore
- */
-const EligibilityInputContext = createContext<StoreApi<EligibilityInputState> | null>(null)
+import { EligibilityInputContext } from "./eligibility-input-context.js"
+import { HardEligibilityContext } from "../hard-eligibility/index.js"
 
 /**
  * Provider for the EligibilityInputStore, eligibility input hooks should be nested within
@@ -17,11 +14,11 @@ const EligibilityInputContext = createContext<StoreApi<EligibilityInputState> | 
 export const EligibilityInputProvider: FC<PropsWithChildren> = ({ children }) => {
   const storeRef = useRef<StoreApi<EligibilityInputState> | null>(null)
   const softEligibilityContext = useContext(SoftEligibilityContext)
-  // const softEligibilityContext = useContext(HardEligibilityContext)
+  const hardEligibilityContext = useContext(HardEligibilityContext)
   if (!storeRef.current) {
-    let requirePatient // TODO Remove this
+    let requirePatient
     if (softEligibilityContext) requirePatient = false
-    // if (hardEligibilityContext) requirePatient = true
+    if (hardEligibilityContext) requirePatient = true
     else throw new Error("Missing SoftEligibilityContext or HardEligibilityContext")
     storeRef.current = createEligibilityInputStore(requirePatient)
   }
@@ -30,13 +27,4 @@ export const EligibilityInputProvider: FC<PropsWithChildren> = ({ children }) =>
       {children}
     </EligibilityInputContext.Provider>
   )
-}
-
-/**
- * Resolves the EligibilityInputStore from context
- */
-export const useEligibilityInput = () => {
-  const store = useContext(EligibilityInputContext)
-  if (!store) throw new Error("useEligibilityInputStore must be within an EligibilityInputProvider")
-  return useStore(store)
 }

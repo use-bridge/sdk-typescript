@@ -24,6 +24,7 @@ import type {
 } from "../types/index.js"
 import type { IneligibleReason } from "./ineligibile-reasons.js"
 import { ineligibilityReasonFromServiceEligibility } from "./lib/ineligibility-reason-from-service-eligibility.js"
+import { HardEligibility } from "./hard-eligibility.js"
 
 interface HardEligibilitySessionEvents {
   update: [HardEligibilitySessionState]
@@ -68,7 +69,7 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
     logger()?.info("HardEligibilitySession.submit", { args })
 
     // One request at a time
-    if (!this.canSubmit()) throw new AlreadySubmittingError()
+    if (!HardEligibility.canSubmit(this.#state.status)) throw new AlreadySubmittingError()
 
     // State is WAITING_FOR_POLICY, clear everything else
     this.setState({ args, status: "WAITING_FOR_POLICY" })
@@ -191,17 +192,6 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
    */
   private updateState(updates: Partial<HardEligibilitySessionState>): HardEligibilitySessionState {
     return this.setState({ ...this.#state, ...updates })
-  }
-
-  /**
-   * Determines whether we're in a state can submit
-   */
-  private canSubmit(): boolean {
-    if (this.#state.status === "WAITING_FOR_POLICY") return false
-    if (this.#state.status === "WAITING_FOR_SERVICE_ELIGIBILITY") return false
-    if (this.#state.status === "ELIGIBLE") return false
-    if (this.#state.status === "INELIGIBLE") return false
-    return true
   }
 
   /**

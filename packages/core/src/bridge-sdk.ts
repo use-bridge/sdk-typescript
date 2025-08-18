@@ -28,7 +28,7 @@ export class BridgeSdk {
   #client: BridgeApiClient
   #payerSearchCache: Map<string, PayerSearchResults> = new Map()
 
-  constructor(private readonly config: BridgeSdkConfig) {
+  constructor(config: BridgeSdkConfig) {
     this.#client = new BridgeApiClient({
       apiKey: config.publishableKey,
       environment: getClientEnvironment(config.environment ?? "production"),

@@ -13,6 +13,7 @@ import { ServiceTypeRequiredError } from "../errors/service-type-required-error.
 import { resolveProviders } from "../lib/resolve-providers.js"
 import { logger } from "../logger/sdk-logger.js"
 import type { ProviderEligibility } from "../types/index.js"
+import { SoftEligibility } from "./soft-eligibility.js"
 
 /**
  * Events emitted by a Soft Eligibility Session
@@ -56,7 +57,7 @@ export class SoftEligibilitySession extends EventEmitter<SoftEligibilitySessionE
     logger()?.info("SoftEligibilitySession.submit", { id: this.id, args })
 
     // One request at a time
-    if (this.#state.status === "SUBMITTING") throw new AlreadySubmittingError()
+    if (!SoftEligibility.canSubmit(this.#state.status)) throw new AlreadySubmittingError()
 
     // Move to SUBMITTING, clear things out
     this.setState({ args, status: "SUBMITTING" })

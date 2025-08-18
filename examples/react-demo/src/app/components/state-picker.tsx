@@ -1,24 +1,19 @@
 "use client"
 
 import { MenuItem, TextField } from "@mui/material"
-import type { FC } from "react"
 import { type UsStateCode, UsStateMap } from "@usebridge/sdk-core"
-import { useEligibilityInputState } from "@usebridge/sdk-react"
+import { useEligibilityInputField } from "@usebridge/sdk-react"
 
-interface StatePickerProps {
-  disabled?: boolean
-}
-
-export const StatePicker: FC<StatePickerProps> = ({ disabled }) => {
-  const [state, setState] = useEligibilityInputState()
+export const StatePicker = () => {
+  const { value, setValue, isDisabled } = useEligibilityInputField("state")
   return (
     <TextField
-      disabled={Boolean(disabled)}
+      disabled={isDisabled}
       select
       label="State"
       size="medium"
-      value={state ?? ""}
-      onChange={(e) => setState(e.target.value as UsStateCode)}
+      value={value}
+      onChange={(e) => setValue(e.target.value as UsStateCode)}
     >
       {Object.entries(UsStateMap).map(([code, name]) => (
         <MenuItem key={code} value={code}>
