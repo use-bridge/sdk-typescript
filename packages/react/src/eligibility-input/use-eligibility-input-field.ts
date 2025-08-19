@@ -1,5 +1,5 @@
 import type { EligibilityInputState } from "./eligibility-input-store.js"
-import { useContext, useMemo } from "react"
+import { useContext, useEffect, useMemo, useState } from "react"
 import { HardEligibilityContext } from "../hard-eligibility/hard-eligibility-context.js"
 import { useEligibilityInput } from "./use-eligibility-input.js"
 import { useHardEligibilityState } from "../hard-eligibility/use-hard-eligibility-state.js"
@@ -34,6 +34,13 @@ export function useEligibilityInputField<F extends Field, T = EligibilityInputSt
 
   // Disabled if either of the eligibility contexts are disabled
   let isDisabled = false
+
+  // Once we've forced the memberId once, we're going to always do it
+  const [forceMemberId, setForceMemberId] = useState(false)
+  const errorForceMemberId = hardEligibilityContext?.state.error?.forceMemberId
+  useEffect(() => {
+    if (errorForceMemberId) setForceMemberId(true)
+  }, [errorForceMemberId])
 
   // These are conditional hooks, but, they're safe to call because it's consistent
   try {
@@ -79,8 +86,10 @@ export function useEligibilityInputField<F extends Field, T = EligibilityInputSt
       break
     case "memberId":
       let memberIdIsRequired = Boolean(
-        // Required if we have a Payer selected that requires a Member ID, we need it
-        (requirePatient && input.payer.value?.memberId) ||
+        // If we're forcing it permanently
+        forceMemberId ||
+          // Required if we have a Payer selected that requires a Member ID, we need it
+          (requirePatient && input.payer.value?.memberId) ||
           // OR, if we have an error that's asking for us to force it
           hardEligibilityContext?.state.error?.forceMemberId,
       )

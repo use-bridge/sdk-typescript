@@ -12,7 +12,6 @@ import { AlreadySubmittingError } from "../errors/index.js"
 import { BridgeApiClient } from "@usebridge/api"
 import { dateObjectToDatestamp, dateToDateObject } from "../lib/date-object.js"
 import { errorFromPolicy } from "./lib/error-from-policy.js"
-import { HardEligibilityErrors } from "./hard-eligibility-errors.js"
 import { TimeoutError, timeoutError } from "../lib/timeout-error.js"
 import { logger } from "../logger/sdk-logger.js"
 import { resolveProviders } from "../lib/resolve-providers.js"
@@ -25,6 +24,7 @@ import type {
 import type { IneligibilityReason } from "./ineligibile-reasons.js"
 import { ineligibilityReasonFromServiceEligibility } from "./lib/ineligibility-reason-from-service-eligibility.js"
 import { HardEligibility } from "./hard-eligibility.js"
+import { EligibilityTimeout } from "./lib/eligibility-timeout.js"
 
 interface HardEligibilitySessionEvents {
   update: [HardEligibilitySessionState]
@@ -101,7 +101,7 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
     // If the Policy resolved to null, it timed out
     if (!resolvedPolicy) {
       logger()?.info("HardEligibilitySession.submit.policyTimeout", { policy })
-      return this.updateState({ status: "TIMEOUT", error: HardEligibilityErrors.TIMEOUT })
+      return this.updateState({ status: "TIMEOUT", error: EligibilityTimeout })
     }
 
     // Store the newly resolvedPolicy as the latest version
@@ -134,7 +134,7 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
     const hasNullServiceEligibility = resolvedEligibility.some(isNull)
     if (hasNullServiceEligibility) {
       logger()?.info("HardEligibilitySession.submit.serviceEligibilityTimeout")
-      return this.updateState({ status: "TIMEOUT", error: HardEligibilityErrors.TIMEOUT })
+      return this.updateState({ status: "TIMEOUT", error: EligibilityTimeout })
     }
 
     // Push these ServiceEligibility into a map in the state, by ServiceType ID
@@ -274,7 +274,7 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
       // If this is a TimeoutError, we can handle it specifically
       if (err instanceof TimeoutError) {
         // Set to the timeout state, and return null
-        this.updateState({ status: "TIMEOUT", error: HardEligibilityErrors.TIMEOUT })
+        this.updateState({ status: "TIMEOUT", error: EligibilityTimeout })
         return null
       }
       // Anything else is unexpected
@@ -401,7 +401,7 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
       // If this is a TimeoutError, we can handle it specifically
       if (err instanceof TimeoutError) {
         // Set to the timeout state, and return null
-        this.updateState({ status: "TIMEOUT", error: HardEligibilityErrors.TIMEOUT })
+        this.updateState({ status: "TIMEOUT", error: EligibilityTimeout })
         return null
       }
       // Anything else is unexpected
