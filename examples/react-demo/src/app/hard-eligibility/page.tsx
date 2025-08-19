@@ -9,6 +9,8 @@ import { HardligibilityConfigForm } from "./hard-eligibility-config-form"
 import { HardEligibilitySessionForm } from "./hard-eligibility-session-form"
 import { HardEligibilityEligibleProviderList } from "./hard-eligibility-providers"
 import { EstimateView } from "./estimate-view"
+import { HardEligibilityErrorView } from "./hard-eligibility-error-view"
+import { IneligibilityView } from "./ineligibility-view"
 
 /**
  *
@@ -37,17 +39,21 @@ export default function HardEligibilityPage() {
       <Grid container spacing={4}>
         <Grid size={4}>
           <HardligibilityConfigForm
-            disabled={false}
+            disabled={Boolean(session)}
             onSubmit={(config) => setSession(createSession(config))}
           />
         </Grid>
         {session && (
           <HardEligibilityProvider session={session}>
             <Grid size={4}>
-              <HardEligibilitySessionForm />
+              <Stack spacing={4}>
+                <HardEligibilitySessionForm />
+                <HardEligibilityErrorView />
+              </Stack>
             </Grid>
             <Grid size={4}>
               <Stack spacing={4}>
+                <IneligibilityView />
                 <EstimateView />
                 <HardEligibilityEligibleProviderList />
               </Stack>

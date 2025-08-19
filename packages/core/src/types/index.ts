@@ -33,7 +33,7 @@ export type ServiceTypeMergeStrategy = "UNION" | "INTERSECTION"
  * SERVICE_TYPE - The estimate for a specific ServiceType is selected
  */
 export type EstimateSelection =
-  | { mode: "HIGHEST" | "LOWEST"; serviceTypeId: never }
+  | { mode: "HIGHEST" | "LOWEST"; serviceTypeId?: never }
   | { mode: "SERVICE_TYPE"; serviceTypeId: string }
 
 /**

@@ -54,10 +54,10 @@ export interface HardEligibilitySessionConfig {
  * Error code for hard eligibility issues
  */
 export type HardEligibilityErrorCode =
-  // TODO There are more to handle, stubbed
-  | "NOT_FOUND_DATE_OF_BIRTH" // Patient wasn't found, hints at Date of Birth mismatch
-  | "NOT_FOUND_NAME" // Patient wasn't found, hints at name mismatch
+  | "NOT_FOUND_NAME" // Patient wasn't, hints at name mismatch
   | "NOT_FOUND_MEMBER_ID" // Patient wasn't found, hints at Member ID mismatch
+  | "NOT_FOUND_DATE_OF_BIRTH" // Patient wasn't found, hints at Date of Birth mismatch
+  | "PAYER_ERROR" // Payer returned server error, retry
   | "SERVER_ERROR" // Unexpected server error, retry
   | "TIMEOUT" // Payer timed out
 
