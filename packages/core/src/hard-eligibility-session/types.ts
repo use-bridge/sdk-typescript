@@ -45,7 +45,7 @@ export interface HardEligibilitySessionConfig {
    */
   eligibilityTimeoutMs?: number
   /**
-   * Interval between polling for updates, defaults to 2s
+   * Interval between polling for updates, defaults to 1s
    */
   pollingIntervalMs?: number
 }

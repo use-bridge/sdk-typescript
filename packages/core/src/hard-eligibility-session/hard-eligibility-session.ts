@@ -30,7 +30,7 @@ interface HardEligibilitySessionEvents {
   update: [HardEligibilitySessionState]
 }
 
-const DEFAULT_POLLING_INTERVAL_MS = 2_000 // 2 seconds
+const DEFAULT_POLLING_INTERVAL_MS = 1_000 // 1 second
 const DEFAULT_POLICY_TIMEOUT_MS = 20_000 // 20 seconds
 const DEFAULT_ELIGIBILITY_TIMEOUT_MS = 20_000 // 20 seconds
 
