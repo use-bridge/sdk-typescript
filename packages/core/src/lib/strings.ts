@@ -3,7 +3,7 @@
  */
 export const Strings = {
   ineligibility: {
-    NO_PROVIDERS: "No providers are enrolled in this plan",
+    NO_PROVIDERS: "Insurance plan is not in-network",
   },
   policyError: {
     NOT_FOUND_NAME: "Insurance not found, check details and try again",

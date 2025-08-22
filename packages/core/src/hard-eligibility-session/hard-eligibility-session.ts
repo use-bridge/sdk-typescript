@@ -25,6 +25,7 @@ import type { IneligibilityReason } from "./ineligibile-reasons.js"
 import { ineligibilityReasonFromServiceEligibility } from "./lib/ineligibility-reason-from-service-eligibility.js"
 import { HardEligibility } from "./hard-eligibility.js"
 import { EligibilityTimeout } from "./lib/eligibility-timeout.js"
+import { Strings } from "../lib/strings.js"
 
 interface HardEligibilitySessionEvents {
   update: [HardEligibilitySessionState]
@@ -163,7 +164,7 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
       logger()?.info("HardEligibilitySession.submit.noEligibleProviders")
       return this.updateState({
         status: "INELIGIBLE",
-        ineligibilityReason: { code: "PROVIDERS", message: "TODO MESSAGE -> NO PROVIDERS" },
+        ineligibilityReason: { code: "PROVIDERS", message: Strings.ineligibility.NO_PROVIDERS },
       })
     }
 
