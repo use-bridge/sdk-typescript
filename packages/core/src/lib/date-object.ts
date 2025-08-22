@@ -12,7 +12,6 @@ export function dateObjectToDayjs(dateObject: DateObject): dayjs.Dayjs {
  * Converts a DateObject to a "YYYY-MM-DD" formatted string
  */
 export function dateObjectToDatestamp(dateObject: DateObject): string {
-  // TODO We need to be sure on how this gets handled with browser timestamps
   return dateObjectToDayjs(dateObject).format("YYYY-MM-DD")
 }
 

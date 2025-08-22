@@ -227,7 +227,6 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
     let waiting = true
 
     // This polls for an update
-    // TODO We can pull out a `poll` function here, use setInterval
     const pollForPolicy = async (): Promise<ResolvedPolicy> => {
       logger()?.info("pollForPolicy")
       while (waiting) {
@@ -337,7 +336,7 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
       policyIds: [policy.id],
       dateOfService: this.dateOfService(),
       state: args.state,
-      // clinicalInfo, TODO Support for ClinicalInfo
+      clinicalInfo: args.clinicalInfo,
     })
   }
 
@@ -352,7 +351,6 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
     let waiting = true
 
     // This polls for updates
-    // TODO Share with `poll` in Policy
     const pollForServiceEligibility = async (): Promise<ResolvedServiceEligibility> => {
       logger()?.info("pollForServiceEligibility")
       while (waiting) {

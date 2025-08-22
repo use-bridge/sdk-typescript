@@ -88,3 +88,9 @@ export type PatientResponsibility =
  */
 export type ConditionalPatientResponsibility =
   BridgeApi.serviceEligibility.v2.ServiceEligibilityCreateV2ResponseConditionalPatientResponsibility
+
+/**
+ * ClinicalInfo resource
+ */
+export type ClinicalInfo =
+  BridgeApi.serviceEligibility.v2.ServiceEligibilityCreateV2RequestClinicalInfo

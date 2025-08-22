@@ -1,5 +1,5 @@
-// TODO Replace with a reference to generated API client, Policy response
 import type {
+  ClinicalInfo,
   ConditionalPatientResponsibility,
   DateObject,
   EstimateSelection,
@@ -17,7 +17,6 @@ import type { IneligibilityReason } from "./ineligibile-reasons.js"
  * Configures the Hard Eligibility Session
  */
 export interface HardEligibilitySessionConfig {
-  // TODO Option to include 'clinicalInfo'
   /**
    * The date of service to check against, defaults to today
    */
@@ -135,6 +134,10 @@ export interface HardEligibilitySubmissionArgs {
    *The Patient's Member ID, optional (depending on the Payer)
    */
   memberId?: string
+  /**
+   * Clinical information to influence eligibility
+   */
+  clinicalInfo?: ClinicalInfo
 }
 
 /**
@@ -155,10 +158,6 @@ export interface HardEligibilityPatientResponsibility {
  * Current state of a Hard Eligibility Session
  */
 export interface HardEligibilitySessionState {
-  // TODO Merged eligibility field
-  // TODO Selected estimate field
-  // TODO ^ CPR, and Clinical Info
-
   /**
    * The current status of the session, begins PENDING
    */
