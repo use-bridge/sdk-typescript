@@ -25,7 +25,7 @@ export const HardEligibilitySessionForm = () => {
   return (
     <Stack spacing={2}>
       <Stack>
-        <Typography variant="h6">SoftEligibilitySession</Typography>
+        <Typography variant="h6">HardEligibilitySession</Typography>
         <Typography fontFamily="monospace">{status}</Typography>
       </Stack>
 
