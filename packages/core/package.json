@@ -31,11 +31,11 @@
     "clean": "rimraf dist"
   },
   "peerDependencies": {
-    "@usebridge/api": ">=1.0.1"
+    "@usebridge/api": ">=1.0.1-beta"
   },
   "devDependencies": {
     "@types/lodash-es": "^4",
-    "@usebridge/api": ">=1.0.1"
+    "@usebridge/api": "1.0.1-beta"
   },
   "publishConfig": {
     "access": "public"

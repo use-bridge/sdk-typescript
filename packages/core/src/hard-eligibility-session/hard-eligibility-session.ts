@@ -226,16 +226,21 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
 
     // Work should stop when this flips
     let waiting = true
+    const abortController = new AbortController()
+
+    const isResolved = (policy: Policy) =>
+      policy.status === "CONFIRMED" || policy.status === "INVALID"
 
     // This polls for an update
     const pollForPolicy = async (): Promise<ResolvedPolicy> => {
       logger()?.info("pollForPolicy")
       while (waiting) {
         try {
-          const latestPolicy = await this.apiClient.policies.getPolicy(policy.id)
+          const latestPolicy = await this.apiClient.policies.getPolicy(policy.id, {
+            abortSignal: abortController.signal,
+          })
           // If it's in a terminal state, use it
-          const { status } = latestPolicy
-          if (status === "CONFIRMED" || status === "INVALID") {
+          if (isResolved(latestPolicy)) {
             logger()?.info("pollForPolicy.resolved", { latestPolicy })
             return latestPolicy as ResolvedPolicy
           }
@@ -252,11 +257,37 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
     }
 
     // This opens an SSE request to listen for updates
-    async function listenForPolicyUpdates(): Promise<ResolvedPolicy> {
-      // TODO Listen for Policy updates with SSE
+    const listenForPolicyUpdates = async (): Promise<ResolvedPolicy> => {
       while (waiting) {
-        // TODO Placeholder, doing nothing yet
-        await new Promise((resolve) => setTimeout(resolve, 1_000))
+        logger()?.info("listenForPolicyUpdates.connect")
+        try {
+          const stream = await this.apiClient.policies.streamPolicy(policy.id, {
+            abortSignal: abortController.signal,
+          })
+          logger()?.info("listenForPolicyUpdates.connected")
+          for await (const latestPolicy of stream) {
+            if (!waiting) break // If we're not waiting any more, we're done
+            logger()?.info("listenForPolicyUpdates.event", { latestPolicy })
+            // If the latest event is good, we can use it
+            if (isResolved(latestPolicy)) {
+              logger()?.info("listenForPolicyUpdates.resolved", { latestPolicy })
+              return latestPolicy as ResolvedPolicy
+            }
+          }
+          logger()?.info("listenForPolicyUpdates.closed")
+        } catch (err) {
+          if (err instanceof Error && err.name === "AbortError") {
+            // This is fine, we're done
+            break
+          } else {
+            logger()?.info("listenForPolicyUpdates.aborted")
+            break
+          }
+          // This is assumed to be a network error, and, we can try again
+          logger()?.error("listenForPolicyUpdates.error", { err })
+        } finally {
+          await new Promise((resolve) => setTimeout(resolve, 1_000))
+        }
       }
       throw new Error("Listening for policy updates was cancelled")
     }
@@ -269,6 +300,7 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
         timeoutError(this.sessionConfig.policyTimeoutMs ?? DEFAULT_POLICY_TIMEOUT_MS),
       ])
       waiting = false // Flip this, so the other loops cancel
+      abortController.abort() // Abort the request
       return resolvedPolicy
     } catch (err) {
       // If this is a TimeoutError, we can handle it specifically
@@ -350,6 +382,10 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
     logger()?.info("HardEligibilitySession.resolveServiceEligibility", { serviceEligibility })
     // Now we're going to wait until it's resolved
     let waiting = true
+    const abortController = new AbortController()
+
+    const isResolved = (serviceEligibility: ServiceEligibility) =>
+      serviceEligibility.status === "ELIGIBLE" || serviceEligibility.status === "INELIGIBLE"
 
     // This polls for updates
     const pollForServiceEligibility = async (): Promise<ResolvedServiceEligibility> => {
@@ -357,10 +393,11 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
       while (waiting) {
         try {
           const latestServiceEligibility =
-            await this.apiClient.serviceEligibility.getServiceEligibility(serviceEligibility.id)
+            await this.apiClient.serviceEligibility.getServiceEligibility(serviceEligibility.id, {
+              abortSignal: abortController.signal,
+            })
           // If it's in a terminal state, use it
-          const { status } = latestServiceEligibility
-          if (status === "ELIGIBLE" || status === "INELIGIBLE") {
+          if (isResolved(latestServiceEligibility)) {
             logger()?.info("pollForServiceEligibility.resolved", { latestServiceEligibility })
             return latestServiceEligibility as ResolvedServiceEligibility
           }
@@ -377,12 +414,39 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
     }
 
     // This opens an SSE request to listen for updates
-    // TODO Also pull out and share with Policy
-    async function listenForServiceEligibilityUpdates(): Promise<ResolvedServiceEligibility> {
-      // TODO Listen for Service Eligibility updates with SSE
+    const listenForServiceEligibilityUpdates = async (): Promise<ResolvedServiceEligibility> => {
       while (waiting) {
-        // TODO Placeholder, doing nothing yet
-        await new Promise((resolve) => setTimeout(resolve, 1_000))
+        logger()?.info("listenForServiceEligibilityUpdates.connect")
+        try {
+          const stream = await this.apiClient.serviceEligibility.streamServiceEligibility(
+            serviceEligibility.id,
+            {
+              abortSignal: abortController.signal,
+            },
+          )
+          logger()?.info("listenForServiceEligibilityUpdates.connected")
+          for await (const latestServiceEligibility of stream) {
+            if (!waiting) break // If we're not waiting any more, we're done
+            logger()?.info("listenForServiceEligibilityUpdates.event", { latestServiceEligibility })
+            if (isResolved(latestServiceEligibility)) {
+              logger()?.info("listenForServiceEligibilityUpdates.resolved", {
+                latestServiceEligibility,
+              })
+              return latestServiceEligibility as ResolvedServiceEligibility
+            }
+          }
+          logger()?.info("listenForServiceEligibilityUpdates.closed")
+        } catch (err) {
+          if (err instanceof Error && err.name === "AbortError") {
+            // This is fine, we're done
+            break
+          } else {
+            logger()?.info("listenForServiceEligibilityUpdates.aborted")
+            break
+          }
+        } finally {
+          await new Promise((resolve) => setTimeout(resolve, 1_000))
+        }
       }
       throw new Error("Listening for service eligibility updates was cancelled")
     }
@@ -395,6 +459,7 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
         timeoutError(this.sessionConfig.eligibilityTimeoutMs ?? DEFAULT_ELIGIBILITY_TIMEOUT_MS),
       ])
       waiting = false // Flip this, so the other loops cancel
+      abortController.abort() // Abort the request
       return resolvedServiceEligibility
     } catch (err) {
       // If this is a TimeoutError, we can handle it specifically
