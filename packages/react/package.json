@@ -1,0 +1,48 @@
+{
+  "name": "@usebridge/sdk-react",
+  "version": "0.0.0",
+  "description": "React hooks for Bridge headless SDK",
+  "license": "MIT",
+  "sideEffects": false,
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean",
+    "dev": "tsup src/index.ts --format esm,cjs --dts --sourcemap --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "echo \"(no tests)\"",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@usebridge/sdk-core": "workspace:^",
+    "zustand": "^5.0.7"
+  },
+  "peerDependencies": {
+    "@usebridge/api": ">=1.0.1",
+    "react": ">=18 <20",
+    "react-dom": ">=18 <20"
+  },
+  "devDependencies": {
+    "@usebridge/api": "1.0.1-beta"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
