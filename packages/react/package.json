@@ -1,6 +1,6 @@
 {
   "name": "@usebridge/sdk-react",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "React hooks for Bridge headless SDK",
   "license": "MIT",
   "sideEffects": false,

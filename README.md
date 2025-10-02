@@ -10,7 +10,7 @@ _⚠️ The packages in this repository are currently in beta, please reach out 
 
 ## Packages
 
-### [`@usebridge/sdk-react](https://www.npmjs.com/package/@usebridge/sdk-react)
+### [`@usebridge/sdk-react`](https://www.npmjs.com/package/@usebridge/sdk-react)
 
 The headless React SDK to drive patient eligibility.
 Hooks allow you to focus on building your UX/UI, rather than the complexity of eligibility input and API calls.
