@@ -29,8 +29,11 @@ jobs:
 
       - name: Set version on packages
         run: |
-          yarn workspace @usebridge/sdk-core version ${{ github.event.release.tag_name }}
-          yarn workspace @usebridge/sdk-react version ${{ github.event.release.tag_name }}
+          VERSION=${{ github.event.release.tag_name }}
+          # Remove 'v' prefix if present
+          VERSION=${VERSION#v}
+          yarn workspace @usebridge/sdk-core version --new-version $VERSION --no-git-tag-version
+          yarn workspace @usebridge/sdk-react version --new-version $VERSION --no-git-tag-version
 
       - name: Build and Publish packages
         run: yarn turbo run publish
