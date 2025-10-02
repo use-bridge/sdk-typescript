@@ -1,6 +1,6 @@
 {
   "name": "@usebridge/sdk-core",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "description": "Headless core SDK for Bridge - framework-agnostic",
   "license": "MIT",
   "sideEffects": false,
