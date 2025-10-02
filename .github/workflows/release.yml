@@ -28,11 +28,11 @@ jobs:
           registry-url: "https://registry.npmjs.org"
 
       - name: Install deps
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Set version on packages
         run: |
-          yarn workspace @usebridge/core version ${{ inputs.version }} --no-git-tag-version
+          yarn workspace @usebridge/sdk-core version ${{ inputs.version }} --no-git-tag-version
           yarn workspace @usebridge/react version ${{ inputs.version }} --no-git-tag-version
 
       - name: Create Release PR or Publish
