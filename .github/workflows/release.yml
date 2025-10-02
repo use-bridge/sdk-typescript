@@ -32,8 +32,14 @@ jobs:
           VERSION=${{ github.event.release.tag_name }}
           # Remove 'v' prefix if present
           VERSION=${VERSION#v}
-          yarn workspace @usebridge/sdk-core version --new-version $VERSION --no-git-tag-version
-          yarn workspace @usebridge/sdk-react version --new-version $VERSION --no-git-tag-version
+
+          # Update core package version
+          cd packages/core
+          npm version $VERSION --no-git-tag-version
+
+          # Update react package version  
+          cd ../react
+          npm version $VERSION --no-git-tag-version
 
       - name: Build and Publish packages
         run: yarn turbo run publish
