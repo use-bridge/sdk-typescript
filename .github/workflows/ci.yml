@@ -26,6 +26,8 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Build
+        env:
+          NEXT_PUBLIC_PUBLISHABLE_KEY: ci
         run: yarn build
 
       - name: Test
