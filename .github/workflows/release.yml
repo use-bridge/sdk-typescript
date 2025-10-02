@@ -32,7 +32,9 @@ jobs:
         run: yarn install --immutable
 
       - name: Set version on packages
-        run: yarn turbo run version -- ${{ inputs.version}}
+        run: |
+          yarn workspace @usebridge/sdk-core version ${{ inputs.version }}
+          yarn workspace @usebridge/sdk-react version ${{ inputs.version }}
 
       - name: Build and Publish packages
         run: yarn turbo run publish
