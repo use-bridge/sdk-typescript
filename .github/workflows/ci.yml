@@ -27,7 +27,7 @@ jobs:
 
       - name: Build
         env:
-          NEXT_PUBLIC_PUBLISHABLE_KEY: ci
+          NEXT_PUBLIC_PUBLISHABLE_KEY: pk_ci
         run: yarn build
 
       - name: Test
