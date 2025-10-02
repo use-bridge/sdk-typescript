@@ -39,7 +39,10 @@ export type EstimateSelection =
 /**
  * Common Payer resource
  */
-export type Payer = BridgeApi.payers.PayerGetV1Response & BridgeApi.search.SearchPayerV1ResponseItem
+export type Payer = Omit<
+  BridgeApi.payers.PayerGetV1Response & BridgeApi.search.SearchPayerV1ResponseItem,
+  "code"
+>
 
 /**
  * Collection of Payers from the search results

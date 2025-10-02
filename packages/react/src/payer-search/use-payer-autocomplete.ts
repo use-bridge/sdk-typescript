@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useIsMounted } from "usehooks-ts"
 import { retryLoop, RetryLoopCancelledError } from "../lib/retry-loop.js"
 import { usePayerSearch } from "./use-payer-search.js"
+import { omit } from "lodash-es"
 import type { Payer } from "@usebridge/sdk-core"
 
 // We'll store these locally, they won't change within a user session
@@ -96,5 +97,8 @@ export function usePayerAutocomplete(
   }, [payerSearch, normalizedQuery, limit])
 
   // Memoize what we return here
-  return useMemo(() => ({ isLoading, results }), [isLoading, results])
+  return useMemo(
+    () => ({ isLoading, results: results.map((r) => omit(r, "code")) }),
+    [isLoading, results],
+  )
 }
