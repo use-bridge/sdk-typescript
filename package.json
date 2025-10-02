@@ -18,7 +18,7 @@
     "clean": "turbo run clean",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "turbo run build && changeset publish"
+    "release": "turbo run build --filter=@usebridge/sdk-core --filter=@usebridge/sdk-react && changeset publish"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.8",
