@@ -18,18 +18,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Enable Corepack
+        run: corepack enable
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: "yarn"
           registry-url: "https://registry.npmjs.org"
 
-      - name: Enable Corepack
-        run: corepack enable
-
       - name: Install deps
-        run: yarn install --immutable
+        run: yarn install --frozen-lockfile
 
       - name: Set version on packages
         run: |
