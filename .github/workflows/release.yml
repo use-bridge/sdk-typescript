@@ -35,9 +35,6 @@ jobs:
           yarn workspace @usebridge/core version ${{ inputs.version }} --no-git-tag-version
           yarn workspace @usebridge/react version ${{ inputs.version }} --no-git-tag-version
 
-      - name: Build (all)
-        run: yarn build --filter=@usebridge/sdk-core --filter=@usebridge/sdk-react
-
       - name: Create Release PR or Publish
         uses: changesets/action@v1
         with:
