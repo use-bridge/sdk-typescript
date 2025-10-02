@@ -5,8 +5,13 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**"]
     },
+    "version": {
+      "cache": false
+    },
     "publish": {
-      "dependsOn": ["build"],
+      "dependsOn": ["^build"],
+      "env": ["NODE_AUTH_TOKEN"],
+      "outputs": [],
       "cache": false
     },
     "dev": {

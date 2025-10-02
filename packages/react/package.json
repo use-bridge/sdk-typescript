@@ -1,6 +1,6 @@
 {
   "name": "@usebridge/sdk-react",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "React hooks for Bridge headless SDK",
   "license": "MIT",
   "sideEffects": false,
@@ -29,7 +29,8 @@
     "lint": "eslint .",
     "test": "echo \"(no tests)\"",
     "clean": "rimraf dist",
-    "publish": "npm publish --access public"
+    "version": "yarn version",
+    "publish": "yarn npm publish --access public"
   },
   "dependencies": {
     "@usebridge/sdk-core": "workspace:^",

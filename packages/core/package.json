@@ -1,6 +1,6 @@
 {
   "name": "@usebridge/sdk-core",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Headless core SDK for Bridge - framework-agnostic",
   "license": "MIT",
   "sideEffects": false,
@@ -29,7 +29,8 @@
     "lint": "eslint .",
     "test": "echo \"(no tests)\"",
     "clean": "rimraf dist",
-    "publish": "npm publish --access public"
+    "version": "yarn version",
+    "publish": "yarn npm publish --access public"
   },
   "peerDependencies": {
     "@usebridge/api": ">=1.0.1-beta"

@@ -24,16 +24,15 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: "20.x"
           registry-url: "https://registry.npmjs.org"
+          scope: "@usebridge"
 
       - name: Install deps
         run: yarn install --immutable
 
       - name: Set version on packages
-        run: |
-          yarn workspace @usebridge/sdk-core version ${{ inputs.version }}
-          yarn workspace @usebridge/sdk-react version ${{ inputs.version }}
+        run: yarn turbo run version -- ${{ inputs.version}}
 
       - name: Build and Publish packages
         run: yarn turbo run publish
