@@ -9,7 +9,7 @@
       "cache": false
     },
     "publish": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["build"],
       "env": ["NODE_AUTH_TOKEN"],
       "outputs": [],
       "cache": false
