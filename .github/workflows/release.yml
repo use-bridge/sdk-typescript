@@ -1,8 +1,12 @@
 name: Release
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "The version of the TypeScript SDK that you would like to release"
+        required: true
+        type: string
 
 jobs:
   release:
@@ -21,17 +25,19 @@ jobs:
           cache: "yarn"
           registry-url: "https://registry.npmjs.org"
 
-      - name: Enable Corepack & pin Yarn
-        run: |
-          corepack enable
-          corepack prepare yarn@$(node -p "require('./package.json').packageManager.split('@')[1]") --activate
-          yarn --version
+      - name: Enable Corepack
+        run: corepack enable
 
       - name: Install deps
         run: yarn install --immutable
 
+      - name: Set version on packages
+        run: |
+          yarn workspace @usebridge/core version ${{ inputs.version }} --no-git-tag-version
+          yarn workspace @usebridge/react version ${{ inputs.version }} --no-git-tag-version
+
       - name: Build (all)
-        run: yarn build
+        run: yarn build --filter=@usebridge/sdk-core --filter=@usebridge/sdk-react
 
       - name: Create Release PR or Publish
         uses: changesets/action@v1

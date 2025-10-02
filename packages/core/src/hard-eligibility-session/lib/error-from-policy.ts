@@ -56,6 +56,7 @@ export function errorFromPolicy(policy: Policy): HardEligibilityError {
 
     default: // We expect a finite set of codes here, but they can change, log it
       logger()?.warn(`Unexpected policy error: ${policyError}, returning generic error`)
+    // eslint-disable-next-line no-fallthrough
     case "GENERIC_ERROR":
       return {
         code: "SERVER_ERROR",

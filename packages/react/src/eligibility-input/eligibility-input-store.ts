@@ -39,7 +39,7 @@ export interface EligibilityInputState {
 }
 
 export function createEligibilityInputStore(requirePatient: boolean) {
-  return createStore<EligibilityInputState>()((set, get) => ({
+  return createStore<EligibilityInputState>()((set) => ({
     requirePatient,
     payer: {
       value: null,

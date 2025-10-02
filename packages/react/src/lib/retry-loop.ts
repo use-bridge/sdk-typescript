@@ -21,12 +21,17 @@ export async function retryLoop<T>(
   shouldRetry: () => boolean,
   delayMs = 500,
 ): Promise<T> {
-  while (true) {
+  let cancelled = false
+  while (!cancelled) {
     try {
       return await fn()
     } catch (err) {
-      if (!shouldRetry()) throw new RetryLoopCancelledError()
-      await new Promise((r) => setTimeout(r, delayMs))
+      if (!shouldRetry()) {
+        cancelled = true
+      } else {
+        await new Promise((r) => setTimeout(r, delayMs))
+      }
     }
   }
+  throw new RetryLoopCancelledError()
 }

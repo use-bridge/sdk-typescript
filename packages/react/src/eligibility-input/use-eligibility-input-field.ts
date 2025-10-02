@@ -74,6 +74,7 @@ export function useEligibilityInputField<F extends Field, T = EligibilityInputSt
       isVisible = requirePatient
       isRequired = requirePatient
       isValid = Boolean(input.firstName.value.trim())
+      break
     case "lastName":
       isVisible = requirePatient
       isRequired = requirePatient
@@ -84,8 +85,8 @@ export function useEligibilityInputField<F extends Field, T = EligibilityInputSt
       isRequired = requirePatient
       isValid = Boolean(input.dateOfBirth.value)
       break
-    case "memberId":
-      let memberIdIsRequired = Boolean(
+    case "memberId": {
+      const memberIdIsRequired = Boolean(
         // If we're forcing it permanently
         forceMemberId ||
           // Required if we have a Payer selected that requires a Member ID, we need it
@@ -97,6 +98,7 @@ export function useEligibilityInputField<F extends Field, T = EligibilityInputSt
       isRequired = memberIdIsRequired
       isValid = Boolean(input.memberId.value.trim()) || !memberIdIsRequired
       break
+    }
     default:
       throw new Error(`Unknown field: ${field}`)
   }

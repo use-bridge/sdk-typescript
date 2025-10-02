@@ -29,6 +29,9 @@ export class BridgeSdk {
   #payerSearchCache: Map<string, PayerSearchResults> = new Map()
 
   constructor(config: BridgeSdkConfig) {
+    // Require a new-format API key, that's got the publishable prefix
+    if (!config.publishableKey.startsWith("pk_"))
+      throw new Error("Invalid API key, must begin with 'pk_'")
     this.#client = new BridgeApiClient({
       apiKey: config.publishableKey,
       environment: getClientEnvironment(config.environment ?? "production"),

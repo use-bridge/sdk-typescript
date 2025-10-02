@@ -169,7 +169,7 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
     }
 
     // We're eligible, parse out the estimate and send this back
-    let patientResponsibility = this.getPatientResponsibility(nonNullEligibility)
+    const patientResponsibility = this.getPatientResponsibility(nonNullEligibility)
     // This is unexpected, should be guaranteed PatientResponsibility if we have something ELIGIBLE
     if (!patientResponsibility) {
       logger()?.error("HardEligibilitySession.submit.noPatientResponsibility")
@@ -505,7 +505,7 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
         case "LOWEST":
           return minBy(eligibleServiceEligibility, (s) => s.patientResponsibility!.total)
         // Return the value from a specific ServiceType
-        case "SERVICE_TYPE":
+        case "SERVICE_TYPE": {
           // Fetch a specific ServiceType by ID. If that fails, fallback to default (HIGHEST)
           const id = estimateSelection?.serviceTypeId
           const matchingServiceEligibility = find(eligibleServiceEligibility, { id })
@@ -514,6 +514,7 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
             id,
           })
           return maxBy(eligibleServiceEligibility, (s) => s.patientResponsibility!.total)
+        }
       }
     }
 
