@@ -33,8 +33,8 @@ jobs:
         run: |
           VERSION=${{ github.event.release.tag_name }}
           VERSION=${VERSION#v}
-          yarn workspace @usebridge/sdk-core version $VERSION
-          yarn workspace @usebridge/sdk-react version $VERSION
+          yarn workspace @usebridge/sdk-core version $VERSION -i
+          yarn workspace @usebridge/sdk-react version $VERSION -i
 
       - name: Build and Publish packages
         run: yarn turbo run publish
