@@ -22,21 +22,43 @@ function getClientEnvironment(environment: string): string {
 }
 
 /**
+ * Determine whether we'll accept this API key
+ */
+function isApiKeyValid(apiKey: string, environment: string, unsafeApiKey?: boolean): boolean {
+  // If it's a publishable key, it's always ok
+  if (apiKey.startsWith("pk_")) return true
+  // If we're in production, we'll throw an error if the key doesn't start with 'pk_'
+  if (environment === "production") {
+    // unsafeApiKey cannot be used in production (throw an error)
+    if (unsafeApiKey) throw new Error("unsafeApiKey cannot be used in production")
+    // Production requires PK
+    return false
+  }
+  // Outside production, we'll allow unsafeApikey
+  if (unsafeApiKey) return true
+  // Otherwise, not OK
+  return false
+}
+
+/**
  * The BridgeSdk is the main entry point for configuring and using @usebridge/usebridge-core
  */
 export class BridgeSdk {
   #client: BridgeApiClient
   #payerSearchCache: Map<string, PayerSearchResults> = new Map()
 
-  constructor(config: BridgeSdkConfig) {
+  constructor({ environment, publishableKey, unsafeApiKey, logger }: BridgeSdkConfig) {
+    // Parse the environment
+    const env = environment ?? "production"
     // Require a new-format API key, that's got the publishable prefix
-    if (!config.publishableKey.startsWith("pk_"))
+    if (!isApiKeyValid(publishableKey, env, unsafeApiKey)) {
       throw new Error("Invalid API key, must begin with 'pk_'")
+    }
     this.#client = new BridgeApiClient({
-      apiKey: config.publishableKey,
-      environment: getClientEnvironment(config.environment ?? "production"),
+      apiKey: publishableKey,
+      environment: getClientEnvironment(env),
     })
-    setLogger(config.logger)
+    setLogger(logger)
   }
 
   /**
