@@ -17,7 +17,7 @@
     "@mui/material": "^7.3.1",
     "@mui/system": "^7.3.1",
     "@mui/x-date-pickers": "^8.10.0",
-    "@usebridge/api": "1.0.1-beta",
+    "@usebridge/api": ">=1.1.0-0",
     "@usebridge/sdk-core": "workspace:*",
     "@usebridge/sdk-react": "workspace:*",
     "dayjs": "^1.11.13",

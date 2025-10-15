@@ -33,11 +33,11 @@
     "publish": "yarn npm publish --access public"
   },
   "peerDependencies": {
-    "@usebridge/api": ">=1.0.1-beta"
+    "@usebridge/api": ">=1.1.0-0"
   },
   "devDependencies": {
     "@types/lodash-es": "^4",
-    "@usebridge/api": "1.0.1-beta"
+    "@usebridge/api": "1.1.0"
   },
   "publishConfig": {
     "access": "public"

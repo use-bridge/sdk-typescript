@@ -207,7 +207,7 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
    */
   private async createPolicy(args: HardEligibilitySubmissionArgs): Promise<Policy> {
     const { payerId, state, firstName, lastName, dateOfBirth, memberId } = args
-    logger()?.info("HardEligibilitySession.resolvePolicy", { args })
+    logger()?.info("HardEligibilitySession.createPolicy", { args })
     return this.apiClient.policies.v2.createPolicy({
       payerId,
       state,
@@ -228,7 +228,10 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
     let waiting = true
     const abortController = new AbortController()
 
-    const isResolved = (policy: Policy) =>
+    // We're authenticating with the token we were granted
+    const headers = { "x-scoped-access-token": policy._token }
+
+    const isResolved = (policy: Pick<Policy, "status">) =>
       policy.status === "CONFIRMED" || policy.status === "INVALID"
 
     // This polls for an update
@@ -238,6 +241,7 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
         try {
           const latestPolicy = await this.apiClient.policies.getPolicy(policy.id, {
             abortSignal: abortController.signal,
+            headers,
           })
           // If it's in a terminal state, use it
           if (isResolved(latestPolicy)) {
@@ -263,6 +267,7 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
         try {
           const stream = await this.apiClient.policies.streamPolicy(policy.id, {
             abortSignal: abortController.signal,
+            headers,
           })
           logger()?.info("listenForPolicyUpdates.connected")
           for await (const latestPolicy of stream) {
@@ -384,7 +389,10 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
     let waiting = true
     const abortController = new AbortController()
 
-    const isResolved = (serviceEligibility: ServiceEligibility) =>
+    // We're authenticating with the token we were granted
+    const headers = { "x-scoped-access-token": serviceEligibility._token }
+
+    const isResolved = (serviceEligibility: Pick<ServiceEligibility, "status">) =>
       serviceEligibility.status === "ELIGIBLE" || serviceEligibility.status === "INELIGIBLE"
 
     // This polls for updates
@@ -395,6 +403,7 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
           const latestServiceEligibility =
             await this.apiClient.serviceEligibility.getServiceEligibility(serviceEligibility.id, {
               abortSignal: abortController.signal,
+              headers,
             })
           // If it's in a terminal state, use it
           if (isResolved(latestServiceEligibility)) {
@@ -422,6 +431,7 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
             serviceEligibility.id,
             {
               abortSignal: abortController.signal,
+              headers,
             },
           )
           logger()?.info("listenForServiceEligibilityUpdates.connected")
@@ -546,7 +556,7 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
   ): IneligibilityReason | null {
     const { mergeStrategy } = this.sessionConfig
     // Combine the response eligibility status, based on strategy
-    if (mergeStrategy === "UNION") {
+    if (!mergeStrategy || mergeStrategy === "UNION") {
       // If all the ServiceEligibility are INELIGIBLE, we're INELIGIBLE
       if (serviceEligibility.every((se) => se.status === "INELIGIBLE")) {
         logger()?.info("HardEligibilitySession.submit.noEligibleServiceTypes")
