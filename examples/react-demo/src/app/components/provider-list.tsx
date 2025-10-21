@@ -1,11 +1,11 @@
 import { List, ListItem, Stack, Typography } from "@mui/material"
 import type { FC } from "react"
-import type { Provider } from "@usebridge/sdk-core"
+import type { ResolvedProvider } from "@usebridge/sdk-core"
 
 /**
  * Renders the list of eligible Providers in this session
  */
-export const ProviderList: FC<{ providers: Provider[] }> = ({ providers }) => {
+export const ProviderList: FC<{ providers: ResolvedProvider[] }> = ({ providers }) => {
   if (providers.length == 0) return <Typography>There are no eligible Providers</Typography>
   return (
     <Stack spacing={2}>

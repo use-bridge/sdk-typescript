@@ -1,7 +1,7 @@
 import type {
   DateObject,
-  Provider,
   ProviderEligibility,
+  ResolvedProvider,
   ServiceTypeId,
   ServiceTypeMergeStrategy,
   UsStateCode,
@@ -66,7 +66,7 @@ export interface SoftEligibilitySessionState {
   /**
    * If the status is ELIGIBLE, this contains the final set of EligibleProviders
    */
-  providers?: Provider[]
+  providers?: ResolvedProvider[]
 
   /**
    * If the status is INELIGIBLE or ELIGIBLE, this contains the final set of ProviderEligibility resources
