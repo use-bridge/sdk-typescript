@@ -23,6 +23,9 @@ export const ProviderList: FC<{ providers: Provider[] }> = ({ providers }) => {
               <Typography variant="caption" fontFamily="monospace">
                 {provider.npi}
               </Typography>
+              <Typography variant="caption" fontFamily="monospace">
+                {provider.serviceTypeIds.join(", ")}
+              </Typography>
             </Stack>
           </ListItem>
         ))}

@@ -27,7 +27,8 @@
     "dev": "tsup src/index.ts --format esm,cjs --dts --sourcemap --watch",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
-    "test": "echo \"(no tests)\"",
+    "test": "jest",
+    "test:watch": "jest --watch",
     "clean": "rimraf dist",
     "version": "yarn version",
     "publish": "yarn npm publish --access public"
@@ -36,8 +37,14 @@
     "@usebridge/api": ">=1.1.0-0"
   },
   "devDependencies": {
+    "@jest/globals": "^30.2.0",
+    "@types/jest": "^30.0.0",
     "@types/lodash-es": "^4",
-    "@usebridge/api": "1.1.0"
+    "@usebridge/api": "1.1.0",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.5",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3"
   },
   "publishConfig": {
     "access": "public"

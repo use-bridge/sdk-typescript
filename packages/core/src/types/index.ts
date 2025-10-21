@@ -81,6 +81,13 @@ export type Provider = BridgeApi.ProviderEligibilityCreateV1ResponseProvider &
   BridgeApi.serviceEligibility.ServiceEligibilityCreateV2ResponseProvider
 
 /**
+ * Provider resource in the final resolved list
+ */
+export type ResolvedProvider = Provider & {
+  serviceTypeIds: string[]
+}
+
+/**
  * PatientResponsibility resource
  */
 export type PatientResponsibility =

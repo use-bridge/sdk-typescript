@@ -157,7 +157,10 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
     }
 
     // Resolve the Providers
-    const providers = resolveProviders(nonNullEligibility)
+    const providers = resolveProviders(
+      nonNullEligibility,
+      this.sessionConfig.mergeStrategy ?? "UNION",
+    )
 
     // If there are no Providers, we're INELIGIBLE even if the plan covers it
     if (isEmpty(providers)) {

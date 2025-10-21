@@ -2,6 +2,7 @@
   "extends": ["//"],
   "tasks": {
     "build": { "outputs": [".next/**", "!.next/cache/**"] },
-    "dev": { "cache": false, "persistent": true }
+    "dev": { "cache": false, "persistent": true },
+    "test": { "cache": false }
   }
 }

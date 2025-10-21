@@ -69,7 +69,10 @@ export class SoftEligibilitySession extends EventEmitter<SoftEligibilitySessionE
       this.updateState({ providerEligibility })
 
       // Based on the merge Strategy, who do we have?
-      const providers = resolveProviders(Object.values(providerEligibility))
+      const providers = resolveProviders(
+        Object.values(providerEligibility),
+        this.sessionConfig.mergeStrategy ?? "UNION",
+      )
       logger()?.info("SoftEligibilitySession.submit.providers", { providers })
       this.updateState({ providers })
 

@@ -5,7 +5,7 @@ import type {
   EstimateSelection,
   PatientResponsibility,
   Policy,
-  Provider,
+  ResolvedProvider,
   ServiceEligibility,
   ServiceTypeId,
   ServiceTypeMergeStrategy,
@@ -197,7 +197,7 @@ export interface HardEligibilitySessionState {
   /**
    * If the status is ELIGIBLE, this contains the final set of EligibleProviders
    */
-  providers?: Provider[]
+  providers?: ResolvedProvider[]
 
   /**
    * If the patient is INELIGIBLE, this contains the reason
