@@ -7,6 +7,7 @@ export default function Page() {
     <Stack spacing={2}>
       <Link href="/soft-eligibility">Soft Eligibility</Link>
       <Link href="/hard-eligibility">Hard Eligibility</Link>
+      <Link href="/hard-eligibility-follow-up">Follow Up Eligibility</Link>
     </Stack>
   )
 }

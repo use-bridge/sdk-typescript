@@ -1,10 +1,10 @@
 import { useCallback, useMemo } from "react"
 import { useEligibilityInput } from "../eligibility-input/use-eligibility-input.js"
 import {
-  dateToDateObject,
   HardEligibility,
   type ClinicalInfo,
   type HardEligibilitySessionState,
+  dateToDateObject,
 } from "@usebridge/sdk-core"
 import { useHardEligibilitySession } from "../hard-eligibility/use-hard-eligibility.js"
 import { useEligibilityInputField, useEligibilityInputIsValid } from "../eligibility-input/index.js"
@@ -23,38 +23,40 @@ export function useHardEligibilitySubmit(): {
   submit: () => Promise<HardEligibilitySessionState>
 } {
   const session = useHardEligibilitySession()
-  const { payer, state, firstName, lastName, memberId, dateOfBirth } = useEligibilityInput()
-  const { isVisible: isMemberIdVisible, isRequired: isMemberIdRequired } =
-    useEligibilityInputField("memberId")
+  const { state, payer, firstName, lastName, dateOfBirth, memberId } = useEligibilityInput()
 
-  // Whether this is ready or not
   const { status } = useHardEligibilityState()
-  const inputIsValid = useEligibilityInputIsValid()
+
+  const usesExistingPolicy = session.usesExistingPolicy
+  const inputIsValid = usesExistingPolicy ? Boolean(state.value) : useEligibilityInputIsValid()
+
   const isDisabled = !inputIsValid || !HardEligibility.canSubmit(status)
 
-  // Function that grabs input and submits
   const submit = useCallback(
     ({ clinicalInfo }: HardEligibilitySubmitCallbackArgs = {}) => {
-      // If it isn't ready, throw an error
-      if (!payer.value) throw new Error("Payer is required")
       if (!state.value) throw new Error("State is required")
-      if (!firstName.value) throw new Error("First name is required")
-      if (!lastName.value) throw new Error("Last name is required")
-      if (!dateOfBirth.value) throw new Error("Date of birth is required")
-      if (isMemberIdRequired && !memberId.value) throw new Error("Member ID is required")
 
-      // Translate into args and submit
-      return session.submit({
-        payerId: payer.value.id,
+      const submitArgs: Parameters<typeof session.submit>[0] = {
         state: state.value,
-        firstName: firstName.value,
-        lastName: lastName.value,
-        memberId: isMemberIdVisible ? memberId.value : undefined,
-        dateOfBirth: dateToDateObject(dateOfBirth.value),
         clinicalInfo,
-      })
+      }
+
+      if (!session.usesExistingPolicy) {
+        if (!payer.value || !firstName.value || !lastName.value || !dateOfBirth.value) {
+          throw new Error("Patient information is required")
+        }
+        submitArgs.patient = {
+          payerId: payer.value.id,
+          firstName: firstName.value.trim(),
+          lastName: lastName.value.trim(),
+          dateOfBirth: dateToDateObject(dateOfBirth.value),
+          memberId: memberId.value?.trim() || undefined,
+        }
+      }
+
+      return session.submit(submitArgs)
     },
-    [session, payer, state, firstName, lastName, dateOfBirth, memberId],
+    [session, state, payer, firstName, lastName, dateOfBirth, memberId],
   )
 
   return useMemo(() => ({ isDisabled, submit }), [isDisabled, submit])

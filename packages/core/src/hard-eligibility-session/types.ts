@@ -14,15 +14,26 @@ import type {
 import type { IneligibilityReason } from "./ineligibile-reasons.js"
 
 /**
- * Configures the Hard Eligibility Session
+ * Patient information required to create a new Policy
  */
-export interface HardEligibilitySessionConfig {
+export interface HardEligibilityPatientInput {
+  payerId: string
+  firstName: string
+  lastName: string
+  dateOfBirth: DateObject
+  memberId?: string
+}
+
+/**
+ * Common fields shared by both session config variants
+ */
+export interface HardEligibilitySessionConfigBase {
   /**
-   * The date of service to check against, defaults to today
+   * List of ServiceType IDs to check against
    */
   serviceTypeIds: ServiceTypeId[]
   /**
-   * List of ServiceType IDs to check against
+   * How to combine results of multiple ServiceTypes, defaults to UNION
    */
   mergeStrategy?: ServiceTypeMergeStrategy
   /**
@@ -30,7 +41,7 @@ export interface HardEligibilitySessionConfig {
    */
   estimateSelection?: EstimateSelection
   /**
-   * How to combine results of multiple ServiceTypes, defaults to UNION
+   * The date of service to check against, defaults to today
    */
   dateOfService?: DateObject
   /**
@@ -48,6 +59,20 @@ export interface HardEligibilitySessionConfig {
    */
   pollingIntervalMs?: number
 }
+
+/**
+ * Configures the Hard Eligibility Session
+ * Either provide an existing Policy ID, or omit patient info (will be provided on submit)
+ */
+export type HardEligibilitySessionConfig =
+  | (HardEligibilitySessionConfigBase & {
+      /**
+       * Use an existing Policy ID instead of creating a new Policy
+       * The Policy is assumed to exist and be valid
+       */
+      policyId: string
+    })
+  | HardEligibilitySessionConfigBase
 
 /**
  * Error code for hard eligibility issues
@@ -111,33 +136,19 @@ export type HardEligibilitySessionAction =
  */
 export interface HardEligibilitySubmissionArgs {
   /**
-   * The Bridge payer ID for the request (pyr_xxx)
-   */
-  payerId: string
-  /**
    * The patient's location at the time of the Service
+   * Required for ServiceEligibility creation
    */
   state: UsStateCode
-  /**
-   *The Patient's first name
-   */
-  firstName: string
-  /**
-   *The Patient's last name
-   */
-  lastName: string
-  /**
-   * The Patient's Date of Birth
-   */
-  dateOfBirth: DateObject
-  /**
-   *The Patient's Member ID, optional (depending on the Payer)
-   */
-  memberId?: string
   /**
    * Clinical information to influence eligibility
    */
   clinicalInfo?: ClinicalInfo
+  /**
+   * Patient information to create a new Policy
+   * Required when session config does not include a policyId
+   */
+  patient?: HardEligibilityPatientInput
 }
 
 /**

@@ -1,6 +1,7 @@
 import { EventEmitter } from "eventemitter3"
 import { v4 as uuidv4 } from "uuid"
 import type {
+  HardEligibilityPatientInput,
   HardEligibilityPatientResponsibility,
   HardEligibilitySessionConfig,
   HardEligibilitySessionState,
@@ -20,6 +21,7 @@ import type {
   ResolvedPolicy,
   ResolvedServiceEligibility,
   ServiceEligibility,
+  UsStateCode,
 } from "../types/index.js"
 import type { IneligibilityReason } from "./ineligibile-reasons.js"
 import { ineligibilityReasonFromServiceEligibility } from "./lib/ineligibility-reason-from-service-eligibility.js"
@@ -34,6 +36,13 @@ interface HardEligibilitySessionEvents {
 const DEFAULT_POLLING_INTERVAL_MS = 1_000 // 1 second
 const DEFAULT_POLICY_TIMEOUT_MS = 20_000 // 20 seconds
 const DEFAULT_ELIGIBILITY_TIMEOUT_MS = 20_000 // 20 seconds
+
+/**
+ * Checks if a Policy is in a resolved state (CONFIRMED or INVALID)
+ */
+function isPolicyResolved(policy: Pick<Policy, "status">): boolean {
+  return policy.status === "CONFIRMED" || policy.status === "INVALID"
+}
 
 /**
  * Instance of a Hard Eligibility Session
@@ -62,6 +71,14 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
   }
 
   /**
+   * Whether this session was created with an existing Policy ID
+   * When true, patient input fields are not required for submission
+   */
+  get usesExistingPolicy(): boolean {
+    return "policyId" in this.sessionConfig
+  }
+
+  /**
    * Submits a new request for Hard Eligibility
    * @return the state when it reaches an actionable state
    * @throws {AlreadySubmittingError} if a request is already in-flight
@@ -72,46 +89,60 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
     // One request at a time
     if (!HardEligibility.canSubmit(this.#state.status)) throw new AlreadySubmittingError()
 
-    // State is WAITING_FOR_POLICY, clear everything else
-    this.setState({ args, status: "WAITING_FOR_POLICY" })
+    let policyId: string
+    if (this.usesExistingPolicy) {
+      policyId = (this.sessionConfig as Extract<HardEligibilitySessionConfig, { policyId: string }>)
+        .policyId
+      logger()?.info("HardEligibilitySession.submit.usingExistingPolicyId", { policyId })
+      this.setState({ args, status: "WAITING_FOR_SERVICE_ELIGIBILITY" })
+    } else {
+      this.setState({ args, status: "WAITING_FOR_POLICY" })
+      if (!args.patient) {
+        throw new Error(
+          "Patient information is required when session config does not include a policyId",
+        )
+      }
 
-    // Create a Policy, then move into "WAITING_FOR_POLICY"
-    let policy
-    try {
-      policy = await this.createPolicy(args)
-      this.updateState({ policy })
-    } catch (err) {
-      logger()?.error("HardEligibilitySession.submit.createPolicy.error", { err })
-      return this.updateState({ status: "SERVER_ERROR" })
-    }
+      let policy
+      try {
+        policy = await this.createPolicy(args.patient, args.state)
+        this.updateState({ policy })
+      } catch (err) {
+        logger()?.error("HardEligibilitySession.submit.createPolicy.error", { err })
+        return this.updateState({ status: "SERVER_ERROR" })
+      }
 
-    // Wait for it to get resolved
-    let resolvedPolicy
-    try {
-      resolvedPolicy = await this.resolvePolicy(policy)
-      logger()?.info("HardEligibilitySession.submit.resolvePolicy", {
-        resolvedPolicy,
-        args,
-        policy,
-      })
-    } catch (err) {
-      logger()?.error("HardEligibilitySession.submit.resolvePolicy.error", { err })
-      return this.updateState({ status: "SERVER_ERROR" })
-    }
+      // Wait for it to get resolved
+      let resolvedPolicy: ResolvedPolicy | null
+      try {
+        resolvedPolicy = await this.resolvePolicy(policy)
+        logger()?.info("HardEligibilitySession.submit.resolvePolicy", {
+          resolvedPolicy,
+          args,
+          policy,
+        })
+      } catch (err) {
+        logger()?.error("HardEligibilitySession.submit.resolvePolicy.error", { err })
+        return this.updateState({ status: "SERVER_ERROR" })
+      }
 
-    // If the Policy resolved to null, it timed out
-    if (!resolvedPolicy) {
-      logger()?.info("HardEligibilitySession.submit.policyTimeout", { policy })
-      return this.updateState({ status: "TIMEOUT", error: EligibilityTimeout })
-    }
+      // If the Policy resolved to null, it timed out
+      if (!resolvedPolicy) {
+        logger()?.info("HardEligibilitySession.submit.policyTimeout")
+        return this.updateState({ status: "TIMEOUT", error: EligibilityTimeout })
+      }
 
-    // Store the newly resolvedPolicy as the latest version
-    this.updateState({ policy: resolvedPolicy })
+      // Store the newly resolvedPolicy as the latest version
+      this.updateState({ policy: resolvedPolicy })
 
-    // If the Policy is INVALID, we need to handle explaining that back to the user
-    if (resolvedPolicy.status === "INVALID") {
-      logger()?.info("HardEligibilitySession.submit.policyInvalid", { resolvedPolicy })
-      return this.updateState({ status: "POLICY_ERROR", error: errorFromPolicy(resolvedPolicy) })
+      // If the Policy is INVALID, we need to handle explaining that back to the user
+      if (resolvedPolicy.status === "INVALID") {
+        logger()?.info("HardEligibilitySession.submit.policyInvalid", { resolvedPolicy })
+        return this.updateState({ status: "POLICY_ERROR", error: errorFromPolicy(resolvedPolicy) })
+      }
+
+      // Use the resolved Policy's ID
+      policyId = resolvedPolicy.id
     }
 
     // We're going to submit and resolve all the ServiceEligibility we need
@@ -121,7 +152,7 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
     try {
       resolvedEligibility = await this.createAndResolveEligibility({
         serviceTypeIds: this.sessionConfig.serviceTypeIds,
-        policy: resolvedPolicy,
+        policyId,
         args,
       })
       logger()?.info("HardEligibilitySession.submit.resolvedServiceTypes", { resolvedEligibility })
@@ -208,9 +239,12 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
    * Creates a new Policy, returns it
    * This is a fast endpoint, asynchronously kicking off resolution
    */
-  private async createPolicy(args: HardEligibilitySubmissionArgs): Promise<Policy> {
-    const { payerId, state, firstName, lastName, dateOfBirth, memberId } = args
-    logger()?.info("HardEligibilitySession.createPolicy", { args })
+  private async createPolicy(
+    patient: HardEligibilityPatientInput,
+    state: UsStateCode,
+  ): Promise<Policy> {
+    const { payerId, firstName, lastName, dateOfBirth, memberId } = patient
+    logger()?.info("HardEligibilitySession.createPolicy", { patient, state })
     return this.apiClient.policies.v2.createPolicy({
       payerId,
       state,
@@ -234,9 +268,6 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
     // We're authenticating with the token we were granted
     const headers = { "x-scoped-access-token": policy._token }
 
-    const isResolved = (policy: Pick<Policy, "status">) =>
-      policy.status === "CONFIRMED" || policy.status === "INVALID"
-
     // This polls for an update
     const pollForPolicy = async (): Promise<ResolvedPolicy> => {
       logger()?.info("pollForPolicy")
@@ -247,7 +278,7 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
             headers,
           })
           // If it's in a terminal state, use it
-          if (isResolved(latestPolicy)) {
+          if (isPolicyResolved(latestPolicy)) {
             logger()?.info("pollForPolicy.resolved", { latestPolicy })
             return latestPolicy as ResolvedPolicy
           }
@@ -277,7 +308,7 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
             if (!waiting) break // If we're not waiting any more, we're done
             logger()?.info("listenForPolicyUpdates.event", { latestPolicy })
             // If the latest event is good, we can use it
-            if (isResolved(latestPolicy)) {
+            if (isPolicyResolved(latestPolicy)) {
               logger()?.info("listenForPolicyUpdates.resolved", { latestPolicy })
               return latestPolicy as ResolvedPolicy
             }
@@ -328,11 +359,11 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
    */
   private async createAndResolveEligibility({
     serviceTypeIds,
-    policy,
+    policyId,
     args,
   }: {
     serviceTypeIds: string[]
-    policy: Policy
+    policyId: string
     args: HardEligibilitySubmissionArgs
   }) {
     return Promise.all(
@@ -340,7 +371,7 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
         // Create the ServiceEligibility for this ServiceType
         const serviceEligibility = await this.createServiceEligibility({
           serviceTypeId,
-          policy,
+          policyId,
           args,
         })
         logger()?.info("HardEligibilitySession.submit.createServiceEligibility", {
@@ -363,18 +394,22 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
    */
   private async createServiceEligibility({
     serviceTypeId,
-    policy,
+    policyId,
     args,
   }: {
     serviceTypeId: string
-    policy: Policy
+    policyId: string
     args: HardEligibilitySubmissionArgs
   }) {
-    logger()?.info("HardEligibilitySession.createServiceEligibility", { serviceTypeId, args })
+    logger()?.info("HardEligibilitySession.createServiceEligibility", {
+      serviceTypeId,
+      policyId,
+      args,
+    })
     // Create the ServiceEligibility, V2 is a quick endpoint that fires off async work
     return this.apiClient.serviceEligibility.v2.createServiceEligibility({
       serviceTypeId,
-      policyIds: [policy.id],
+      policyIds: [policyId],
       dateOfService: this.dateOfService(),
       state: args.state,
       clinicalInfo: args.clinicalInfo,
