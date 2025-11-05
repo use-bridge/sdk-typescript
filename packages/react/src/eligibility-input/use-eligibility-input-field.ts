@@ -1,5 +1,5 @@
 import type { EligibilityInputState } from "./eligibility-input-store.js"
-import { useContext, useEffect, useMemo, useState } from "react"
+import { useContext, useEffect, useMemo, useRef, useState, useLayoutEffect } from "react"
 import { HardEligibilityContext } from "../hard-eligibility/hard-eligibility-context.js"
 import { useEligibilityInput } from "./use-eligibility-input.js"
 import { useHardEligibilityState } from "../hard-eligibility/use-hard-eligibility-state.js"
@@ -22,6 +22,7 @@ type FieldState<F extends Field, T = EligibilityInputState[F]["value"]> = {
  */
 export function useEligibilityInputField<F extends Field, T = EligibilityInputState[F]["value"]>(
   field: F,
+  defaultValue?: T,
 ): FieldState<F, T> {
   const input = useEligibilityInput()
   const inputField = input[field]
@@ -103,15 +104,26 @@ export function useEligibilityInputField<F extends Field, T = EligibilityInputSt
       throw new Error(`Unknown field: ${field}`)
   }
 
+  // This is safe, but we need to satisfy TypeScript
+  const setValue = set as (value: T) => void
+
+  // If we have a defaultValue, set to that immediately
+  const hasSetDefaultValue = useRef(false)
+  useLayoutEffect(() => {
+    if (hasSetDefaultValue.current) return
+    if (defaultValue) setValue(defaultValue)
+    hasSetDefaultValue.current = true
+  }, [setValue, defaultValue])
+
   return useMemo(
     () => ({
       value: value as T,
-      setValue: set as (value: T) => void,
+      setValue,
       isVisible,
       isValid,
       isRequired,
       isDisabled,
     }),
-    [value, set, isVisible, isValid, isRequired, isDisabled],
+    [value, setValue, isVisible, isValid, isRequired, isDisabled],
   )
 }
