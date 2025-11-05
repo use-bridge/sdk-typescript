@@ -7,7 +7,7 @@ import {
   dateToDateObject,
 } from "@usebridge/sdk-core"
 import { useHardEligibilitySession } from "../hard-eligibility/use-hard-eligibility.js"
-import { useEligibilityInputField, useEligibilityInputIsValid } from "../eligibility-input/index.js"
+import { useEligibilityInputIsValid } from "../eligibility-input/index.js"
 import { useHardEligibilityState } from "./use-hard-eligibility-state.js"
 
 interface HardEligibilitySubmitCallbackArgs {
