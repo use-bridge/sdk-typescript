@@ -1,7 +1,5 @@
 # Bridge TypeScript SDK
 
-_⚠️ The packages in this repository are currently in beta, please reach out and connect before integrating ⚠️_
-
 ## Documentation
 
 - [React SDK Guide](https://docs.usebridge.com/documentation/getting-started/react-sdk)
