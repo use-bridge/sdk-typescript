@@ -1,4 +1,5 @@
 import type { Logger } from "../logger/index.js"
+import type { AnalyticsHandler } from "../analytics/index.js"
 
 /**
  * Configures the client
@@ -13,6 +14,11 @@ export interface BridgeSdkConfig {
    * Logger implementation
    */
   logger?: Logger
+
+  /**
+   * Analytics handler implementation
+   */
+  analytics?: AnalyticsHandler
 
   /**
    * Environment to use, defaults to "production"

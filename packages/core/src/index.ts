@@ -1,4 +1,5 @@
 export * from "./logger/index.js"
+export * from "./analytics/index.js"
 
 export * from "./types/index.js"
 export * from "./lib/index.js"
