@@ -42,8 +42,6 @@ const myAnalyticsHandler: AnalyticsHandler = {
 const sdk = new BridgeSdk({
   publishableKey: "pk_...",
   analyticsHandler: myAnalyticsHandler,
-  // Optionally disable Bridge analytics while keeping your handler
-  doNotShareAnalytics: true,
 })
 ```
 
