@@ -1,4 +1,3 @@
-import { useEligibilityInput } from "./use-eligibility-input.js"
 import { useEffect, useMemo } from "react"
 import { useBridgeSdk } from "../sdk/index.js"
 import type { AnalyticEvent } from "@usebridge/sdk-core"
