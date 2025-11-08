@@ -18,7 +18,14 @@ export interface BridgeSdkConfig {
   /**
    * Analytics handler implementation
    */
-  analytics?: AnalyticsHandler
+  analyticsHandler?: AnalyticsHandler
+
+  /**
+   * By default, the SDK will collect analytics data and send directly to Bridge
+   * Disables the Bridge analytics tracking
+   * Still allows the AnalyticsHandler to be used
+   */
+  doNotShareAnalytics?: boolean
 
   /**
    * Environment to use, defaults to "production"

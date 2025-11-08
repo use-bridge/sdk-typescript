@@ -7,6 +7,7 @@ import {
 import { SoftEligibilityContext } from "../soft-eligibility/soft-eligibility-context.js"
 import { EligibilityInputContext } from "./eligibility-input-context.js"
 import { HardEligibilityContext } from "../hard-eligibility/index.js"
+import { EligibilityInputAnalytics } from "./eligibility-input-analytics.js"
 
 /**
  * Provider for the EligibilityInputStore, eligibility input hooks should be nested within
@@ -25,6 +26,7 @@ export const EligibilityInputProvider: FC<PropsWithChildren> = ({ children }) =>
   return (
     <EligibilityInputContext.Provider value={storeRef.current}>
       {children}
+      <EligibilityInputAnalytics />
     </EligibilityInputContext.Provider>
   )
 }

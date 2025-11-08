@@ -28,6 +28,7 @@ import { ineligibilityReasonFromServiceEligibility } from "./lib/ineligibility-r
 import { HardEligibility } from "./hard-eligibility.js"
 import { EligibilityTimeout } from "./lib/eligibility-timeout.js"
 import { Strings } from "../lib/strings.js"
+import { analytics } from "../analytics/index.js"
 
 interface HardEligibilitySessionEvents {
   update: [HardEligibilitySessionState]
@@ -59,8 +60,12 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
     super()
     if (isEmpty(sessionConfig.serviceTypeIds)) throw new ServiceTypeRequiredError()
     this.id = uuidv4()
-    this.#state = { status: "PENDING" }
+    this.#state = { status: "PENDING", submitCount: 0 }
     logger()?.info("HardEligibilitySession created", { sessionConfig })
+    analytics().event("hard_eligibility.session.created", {
+      sessionId: this.id,
+      config: sessionConfig,
+    })
   }
 
   /**
@@ -85,18 +90,30 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
    */
   async submit(args: HardEligibilitySubmissionArgs): Promise<HardEligibilitySessionState> {
     logger()?.info("HardEligibilitySession.submit", { args })
+    analytics().event("hard_eligibility.session.submit", { sessionId: this.id, args })
+    const submitAt = performance.now()
 
     // One request at a time
-    if (!HardEligibility.canSubmit(this.#state.status)) throw new AlreadySubmittingError()
+    if (!HardEligibility.canSubmit(this.#state.status)) {
+      analytics().fatal(new AlreadySubmittingError())
+    }
+
+    // We're going to force the state back to no error, and track the submission
+    const resetState = {
+      args,
+      error: null,
+      submitCount: this.#state.submitCount + 1,
+      firstSubmitAt: this.#state.firstSubmitAt ?? submitAt,
+    } as const
 
     let policyId: string
     if (this.usesExistingPolicy) {
       policyId = (this.sessionConfig as Extract<HardEligibilitySessionConfig, { policyId: string }>)
         .policyId
       logger()?.info("HardEligibilitySession.submit.usingExistingPolicyId", { policyId })
-      this.setState({ args, status: "WAITING_FOR_SERVICE_ELIGIBILITY" })
+      this.updateState({ ...resetState, status: "WAITING_FOR_SERVICE_ELIGIBILITY" })
     } else {
-      this.setState({ args, status: "WAITING_FOR_POLICY" })
+      this.updateState({ ...resetState, status: "WAITING_FOR_POLICY" })
       if (!args.patient) {
         throw new Error(
           "Patient information is required when session config does not include a policyId",
@@ -184,6 +201,17 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
     const ineligibilityReason = this.ineligibilityReasonFromServiceEligibility(nonNullEligibility)
     if (ineligibilityReason) {
       logger()?.info("HardEligibilitySession.submit.ineligible")
+      analytics().event("hard_eligibility.session.complete.ineligible", {
+        sessionId: this.id,
+        dateOfService: this.dateOfService(),
+        state: args.state,
+        ineligibilityReason,
+        policyId: policyId,
+        serviceEligibilityIds: Object.keys(resolvedEligibility ?? {}),
+        submitCount: this.#state.submitCount,
+        durationMs: performance.now() - submitAt,
+        durationSinceFirstSubmitMs: performance.now() - (this.#state.firstSubmitAt ?? submitAt),
+      })
       return this.updateState({ status: "INELIGIBLE", ineligibilityReason })
     }
 
@@ -196,10 +224,22 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
     // If there are no Providers, we're INELIGIBLE even if the plan covers it
     if (isEmpty(providers)) {
       logger()?.info("HardEligibilitySession.submit.noEligibleProviders")
-      return this.updateState({
-        status: "INELIGIBLE",
-        ineligibilityReason: { code: "PROVIDERS", message: Strings.ineligibility.NO_PROVIDERS },
+      const ineligibilityReason = {
+        code: "PROVIDERS",
+        message: Strings.ineligibility.NO_PROVIDERS,
+      } as const
+      analytics().event("hard_eligibility.session.complete.ineligible", {
+        sessionId: this.id,
+        dateOfService: this.dateOfService(),
+        state: args.state,
+        ineligibilityReason,
+        policyId: policyId,
+        serviceEligibilityIds: Object.keys(resolvedEligibility ?? {}),
+        submitCount: this.#state.submitCount,
+        durationMs: performance.now() - submitAt,
+        durationSinceFirstSubmitMs: performance.now() - (this.#state.firstSubmitAt ?? submitAt),
       })
+      return this.updateState({ status: "INELIGIBLE", ineligibilityReason })
     }
 
     // We're eligible, parse out the estimate and send this back
@@ -207,15 +247,24 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
     // This is unexpected, should be guaranteed PatientResponsibility if we have something ELIGIBLE
     if (!patientResponsibility) {
       logger()?.error("HardEligibilitySession.submit.noPatientResponsibility")
-      throw new Error("No patientResponsibility found in ServiceEligibility")
+      analytics().fatal(new Error("No patientResponsibility found in ServiceEligibility"))
+      throw new Error("Unreachable")
     }
 
     logger()?.info("HardEligibilitySession.submit.eligible", { providers, patientResponsibility })
-    return this.updateState({
-      status: "ELIGIBLE",
-      providers,
+    analytics().event("hard_eligibility.session.complete.eligible", {
+      sessionId: this.id,
+      dateOfService: this.dateOfService(),
+      state: args.state,
+      providerCount: providers.length,
+      policyId: policyId,
+      serviceEligibilityIds: Object.keys(resolvedEligibility ?? {}),
       patientResponsibility,
+      submitCount: this.#state.submitCount,
+      durationMs: performance.now() - submitAt,
+      durationSinceFirstSubmitMs: performance.now() - (this.#state.firstSubmitAt ?? submitAt),
     })
+    return this.updateState({ status: "ELIGIBLE", providers, patientResponsibility })
   }
 
   /**
@@ -225,6 +274,13 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
     this.#state = state
     logger()?.debug?.("HardEligibilitySession state updated", { state })
     this.emit("update", state)
+    analytics().event("hard_eligibility.session.updated", {
+      sessionId: this.id,
+      status: state.status,
+      policyId: state.policy?.id ?? null,
+      serviceEligibilityIds: Object.keys(state.serviceEligibility ?? {}),
+      error: state.error ?? null,
+    })
     return state
   }
 

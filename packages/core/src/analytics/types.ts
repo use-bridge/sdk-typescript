@@ -1,7 +1,4 @@
-/**
- * Event type for analytics tracking
- */
-export type EventType = "example.a" | "example.b"
+import type { AnalyticsEvent, AnalyticsEventName } from "./analytics-events.js"
 
 /**
  * Analytics handler interface
@@ -12,5 +9,11 @@ export interface AnalyticsHandler {
    * @param event The type of event
    * @param data Additional data associated with the event
    */
-  onEvent(event: EventType, data: object): void
+  onEvent<T extends AnalyticsEventName>(event: T, data: AnalyticsEvent<T>): void
+
+  /**
+   * Called when the AnalyticsHandler hits an error
+   * @param error The error that occurred
+   */
+  onError(error: Error): void
 }

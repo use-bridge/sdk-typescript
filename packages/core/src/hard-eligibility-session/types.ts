@@ -180,14 +180,9 @@ export interface HardEligibilitySessionState {
   args?: HardEligibilitySubmissionArgs
 
   /**
-   * If appropriate, hints to the next action that should be taken
-   */
-  nextAction?: HardEligibilitySessionAction
-
-  /**
    * If applicable, details the error that should be displayed to the user
    */
-  error?: HardEligibilityError
+  error?: HardEligibilityError | null
 
   /**
    * The most recent Policy, if applicable
@@ -214,4 +209,14 @@ export interface HardEligibilitySessionState {
    * If the patient is INELIGIBLE, this contains the reason
    */
   ineligibilityReason?: IneligibilityReason
+
+  /**
+   * The number of submission attempts made
+   */
+  submitCount: number
+
+  /**
+   * The timestamp of the first submission
+   */
+  firstSubmitAt?: number
 }

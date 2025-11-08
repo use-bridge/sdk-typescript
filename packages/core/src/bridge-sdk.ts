@@ -9,6 +9,9 @@ import {
 } from "./hard-eligibility-session/index.js"
 import { BridgeApiClient } from "@usebridge/api"
 import { setLogger } from "./logger/sdk-logger.js"
+import { analytics } from "./analytics/index.js"
+import { setAnalyticsHandler } from "./analytics/index.js"
+import type { Analytics } from "./analytics/analytics.js"
 
 function getClientEnvironment(environment: string): string {
   switch (environment) {
@@ -47,18 +50,27 @@ export class BridgeSdk {
   #client: BridgeApiClient
   #payerSearchCache: Map<string, PayerSearchResults> = new Map()
 
-  constructor({ environment, publishableKey, unsafeApiKey, logger }: BridgeSdkConfig) {
+  constructor({
+    environment,
+    publishableKey,
+    unsafeApiKey,
+    logger,
+    analyticsHandler,
+    doNotShareAnalytics,
+  }: BridgeSdkConfig) {
+    setLogger(logger)
+    setAnalyticsHandler(analyticsHandler, doNotShareAnalytics)
     // Parse the environment
     const env = environment ?? "production"
     // Require a new-format API key, that's got the publishable prefix
     if (!isApiKeyValid(publishableKey, env, unsafeApiKey)) {
-      throw new Error("Invalid API key, must begin with 'pk_'")
+      analytics().fatal(new Error("Invalid API key, must begin with 'pk_'"))
     }
     this.#client = new BridgeApiClient({
       apiKey: publishableKey,
       environment: getClientEnvironment(env),
     })
-    setLogger(logger)
+    analytics().event("sdk.initialized", { environment: env })
   }
 
   /**
@@ -73,11 +85,28 @@ export class BridgeSdk {
     query: string
     limit?: number
   }): Promise<PayerSearchResults> {
+    const startTime = performance.now()
     const cacheKey = query.toLowerCase()
     const cached = this.#payerSearchCache.get(cacheKey)
-    if (cached) return cached
+    if (cached) {
+      analytics().event("input.payer.search", {
+        query,
+        limit,
+        resultCount: cached.items.length,
+        cacheHit: true,
+        durationMs: performance.now() - startTime,
+      })
+      return cached
+    }
     const result = await this.#client.search.payerSearch({ query, limit })
     this.#payerSearchCache.set(cacheKey, result)
+    analytics().event("input.payer.search", {
+      query,
+      limit,
+      resultCount: result.items.length,
+      cacheHit: false,
+      durationMs: performance.now() - startTime,
+    })
     return result
   }
 
@@ -93,5 +122,12 @@ export class BridgeSdk {
    */
   createHardEligibilitySession(config: HardEligibilitySessionConfig): HardEligibilitySession {
     return new HardEligibilitySession(this.#client, config)
+  }
+
+  /**
+   * @returns the Analytics publisher, for internal use only
+   */
+  get _analytics(): Analytics {
+    return analytics()
   }
 }
