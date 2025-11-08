@@ -22,7 +22,7 @@ export function usePayerAutocomplete(
      * The maximum number of results to return, defaults to 10
      */
     limit?: number
-  },
+  } = {},
 ): {
   /**
    * Whether the autocomplete is currently loading
