@@ -25,7 +25,7 @@ export interface BridgeSdkConfig {
    * Disables the Bridge analytics tracking
    * Still allows the AnalyticsHandler to be used
    */
-  doNotShareAnalytics?: boolean
+  doNotShare?: boolean
 
   /**
    * Environment to use, defaults to "production"

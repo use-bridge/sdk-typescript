@@ -133,4 +133,4 @@ export type AnalyticsEventName = keyof AnalyticsEvents
 /**
  * Data for a specific analytics event
  */
-export type AnalyticsEvent<T extends AnalyticsEventName> = AnalyticsEvents[T]
+export type AnalyticsEvent<T extends AnalyticsEventName = AnalyticsEventName> = AnalyticsEvents[T]

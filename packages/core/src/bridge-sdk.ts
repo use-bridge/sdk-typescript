@@ -10,7 +10,7 @@ import {
 import { BridgeApiClient } from "@usebridge/api"
 import { setLogger } from "./logger/sdk-logger.js"
 import { analytics } from "./analytics/index.js"
-import { setAnalyticsHandler } from "./analytics/index.js"
+import { configureAnalytics } from "./analytics/index.js"
 import type { Analytics } from "./analytics/analytics.js"
 
 function getClientEnvironment(environment: string): string {
@@ -56,19 +56,20 @@ export class BridgeSdk {
     unsafeApiKey,
     logger,
     analyticsHandler,
-    doNotShareAnalytics,
+    doNotShare,
   }: BridgeSdkConfig) {
     setLogger(logger)
-    setAnalyticsHandler(analyticsHandler, doNotShareAnalytics)
     // Parse the environment
     const env = environment ?? "production"
+    const baseUrl = getClientEnvironment(env)
+    configureAnalytics({ publishableKey, analyticsHandler, doNotShare, baseUrl })
     // Require a new-format API key, that's got the publishable prefix
     if (!isApiKeyValid(publishableKey, env, unsafeApiKey)) {
       analytics().fatal(new Error("Invalid API key, must begin with 'pk_'"))
     }
     this.#client = new BridgeApiClient({
       apiKey: publishableKey,
-      environment: getClientEnvironment(env),
+      environment: baseUrl,
     })
     analytics().event("sdk.initialized", { environment: env })
   }

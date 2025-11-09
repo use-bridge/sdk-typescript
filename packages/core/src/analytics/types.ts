@@ -16,4 +16,9 @@ export interface AnalyticsHandler {
    * @param error The error that occurred
    */
   onError(error: Error): void
+
+  /**
+   * Called when there's a hint to force a flush
+   */
+  flush(): void
 }

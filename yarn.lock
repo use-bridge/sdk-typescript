@@ -2516,6 +2516,7 @@ __metadata:
     "@types/lodash-es": "npm:^4"
     "@usebridge/api": "npm:1.1.0"
     dayjs: "npm:^1.11.13"
+    debounce: "npm:^3.0.0"
     jest: "npm:^30.2.0"
     lodash-es: "npm:^4.17.21"
     ts-jest: "npm:^29.4.5"
@@ -3133,6 +3134,13 @@ __metadata:
   version: 1.11.13
   resolution: "dayjs@npm:1.11.13"
   checksum: 10c0/a3caf6ac8363c7dade9d1ee797848ddcf25c1ace68d9fe8678ecf8ba0675825430de5d793672ec87b24a69bf04a1544b176547b2539982275d5542a7955f35b7
+  languageName: node
+  linkType: hard
+
+"debounce@npm:^3.0.0":
+  version: 3.0.0
+  resolution: "debounce@npm:3.0.0"
+  checksum: 10c0/bfae14dbdd98c57f2ed6e3f91f8086fe5a64624ddf54d0a55e038069ae47aa90ba305be98c29199b611955bbf9c3309bf07caf7f1ab55fe90928396fb9318c5a
   languageName: node
   linkType: hard
 

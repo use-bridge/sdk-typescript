@@ -1,5 +1,4 @@
-import type { AnalyticsHandler } from "./types.js"
-import { Analytics } from "./analytics.js"
+import { Analytics, type AnalyticsConfig } from "./analytics.js"
 
 export * from "./types.js"
 export type {
@@ -12,14 +11,14 @@ let _analyticsPublisher: Analytics | undefined
 /**
  * Sets the global AnalyticsHandler
  */
-export function setAnalyticsHandler(analytics?: AnalyticsHandler, doNotShareAnalytics?: boolean) {
-  _analyticsPublisher = new Analytics(analytics, doNotShareAnalytics)
+export function configureAnalytics(args: AnalyticsConfig) {
+  _analyticsPublisher = new Analytics(args)
 }
 
 /**
  * @returns the AnalyticsPublisher singleton
  */
 export const analytics = () => {
-  if (!_analyticsPublisher) throw new Error("AnalyticsPublisher not initialized")
+  if (!_analyticsPublisher) throw new Error("AnalyticsPublisher not configured")
   return _analyticsPublisher
 }
