@@ -180,7 +180,7 @@ export class Analytics {
       logger()?.error("Analytics.flush.bridge.error", { err })
     }
     try {
-      this.config.analyticsHandler?.flush()
+      this.config.analyticsHandler?.flush?.()
     } catch (err) {
       logger()?.error("Analytics.flush.handler.error", { err })
     }
