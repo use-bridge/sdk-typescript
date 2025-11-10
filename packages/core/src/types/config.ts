@@ -1,4 +1,5 @@
 import type { Logger } from "../logger/index.js"
+import type { AnalyticsHandler } from "../analytics/index.js"
 
 /**
  * Configures the client
@@ -13,6 +14,18 @@ export interface BridgeSdkConfig {
    * Logger implementation
    */
   logger?: Logger
+
+  /**
+   * Analytics handler implementation
+   */
+  analyticsHandler?: AnalyticsHandler
+
+  /**
+   * By default, the SDK will collect analytics data and send directly to Bridge
+   * Disables the Bridge analytics tracking
+   * Still allows the AnalyticsHandler to be used
+   */
+  doNotShare?: boolean
 
   /**
    * Environment to use, defaults to "production"

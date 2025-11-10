@@ -19,3 +19,56 @@ TypeScript SDK, browser and node-compatible, for managing eligibility checks.
 Provides an abstraction over the eligibility API's.
 
 _If using React, do not use this directly._
+
+## Analytics Events
+
+The SDK emits analytics events throughout the eligibility flow. To receive these events, implement the `AnalyticsHandler` interface and pass it to the SDK constructor:
+
+```typescript
+import { BridgeSdk } from "@usebridge/sdk-core"
+import type { AnalyticsHandler, AnalyticsEvent, AnalyticsEventName } from "@usebridge/sdk-core"
+
+const myAnalyticsHandler: AnalyticsHandler = {
+  onEvent<T extends AnalyticsEventName>(event: T, data: AnalyticsEvent<T>) {
+    // Send to your analytics service
+    console.log(event, data)
+  },
+  onError(error: Error) {
+    // Handle fatal errors
+    console.error(error)
+  },
+}
+
+const sdk = new BridgeSdk({
+  publishableKey: "pk_...",
+  analyticsHandler: myAnalyticsHandler,
+})
+```
+
+### Event Types
+
+**SDK Lifecycle**
+
+- `sdk.initialized`
+- `sdk.error`
+
+**Input Events**
+
+- `input.payer.search`
+- `input.state.updated`
+
+**Soft Eligibility**
+
+- `soft_eligibility.session.created`
+- `soft_eligibility.session.submit`
+- `soft_eligibility.session.updated`
+- `soft_eligibility.session.complete.eligible`
+- `soft_eligibility.session.complete.ineligible`
+
+**Hard Eligibility**
+
+- `hard_eligibility.session.created`
+- `hard_eligibility.session.submit`
+- `hard_eligibility.session.updated`
+- `hard_eligibility.session.complete.eligible`
+- `hard_eligibility.session.complete.ineligible`

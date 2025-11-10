@@ -3,6 +3,7 @@
 import { createContext, type FC, type PropsWithChildren, useContext, useRef } from "react"
 import { BridgeSdk, type BridgeSdkConfig } from "@usebridge/sdk-core"
 import { usePrefetchPayers } from "./use-prefetch-payers.js"
+import { useAnalyticsLifecycle } from "./use-analytics-lifecycle.js"
 
 const BridgeSdkContext = createContext<BridgeSdk | null>(null)
 
@@ -26,8 +27,14 @@ export const BridgeSdkProvider: FC<BridgeSdkProviderProps> = ({
   prefetchPayers = true,
   children,
 }) => {
-  const { current } = useRef(new BridgeSdk(config))
+  // Initialize an SDK on first render
+  const sdkRef = useRef<BridgeSdk | null>(null)
+  if (!sdkRef.current) sdkRef.current = new BridgeSdk(config)
+  const current = sdkRef.current
+
   usePrefetchPayers(current, prefetchPayers)
+  useAnalyticsLifecycle(current)
+
   return <BridgeSdkContext.Provider value={current}> {children} </BridgeSdkContext.Provider>
 }
 

@@ -48,13 +48,13 @@ export function useEligibilityInputField<F extends Field, T = EligibilityInputSt
     const { status } = useHardEligibilityState()
     isDisabled = !HardEligibility.canSubmit(status)
     if (status === "WAITING_FOR_SERVICE_ELIGIBILITY") isDisabled = true
-  } catch (err) {
+  } catch (_) {
     // We're here because there's no HardEligibilityContext, which is fine
   }
   try {
     const { status } = useSoftEligibilityState()
     isDisabled = !SoftEligibility.canSubmit(status)
-  } catch (err) {
+  } catch (_) {
     // We're here because there's no SoftEligibilityContext, which is fine
   }
 

@@ -15,7 +15,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <BridgeProvider>
           <MuiProviders>
             <PageLayout>{children}</PageLayout>
-            <pre>Hello</pre>
           </MuiProviders>
         </BridgeProvider>
       </body>

@@ -51,6 +51,7 @@
   },
   "dependencies": {
     "dayjs": "^1.11.13",
+    "debounce": "^3.0.0",
     "lodash-es": "^4.17.21",
     "uuid": "^11.1.0"
   }
