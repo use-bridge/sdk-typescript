@@ -13,8 +13,8 @@ export function useAnalyticsLifecycle(bridgeSdk: BridgeSdk) {
   }, [bridgeSdk])
   // Hook into the visibility event, flush when we're  hidden
   useEffect(() => {
-    const flush = (e: any) => {
-      if (e.visibilityState === "hidden") bridgeSdk._analytics.flush()
+    const flush = () => {
+      if (document.visibilityState === "hidden") bridgeSdk._analytics.flush()
     }
     if (typeof window !== "undefined") window.addEventListener("visibilitychange", flush)
     return () => {
