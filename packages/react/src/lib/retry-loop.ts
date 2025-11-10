@@ -25,7 +25,7 @@ export async function retryLoop<T>(
   while (!cancelled) {
     try {
       return await fn()
-    } catch (err) {
+    } catch (_) {
       if (!shouldRetry()) {
         cancelled = true
       } else {
