@@ -14,14 +14,9 @@ import { configureAnalytics } from "./analytics/index.js"
 import type { Analytics } from "./analytics/analytics.js"
 
 function getClientEnvironment(environment: string): string {
-  switch (environment) {
-    case "production":
-      return "https://app.usebridge.com"
-    case "sandbox":
-      return "https://app.usebridge.xyz"
-    default:
-      return environment
-  }
+  if(environment.toLocaleLowerCase() === "production") return "https://app.usebridge.com"
+  if(environment.toLocaleLowerCase() === "sandbox") return "https://app.usebridge.xyz"
+  return environment
 }
 
 /**
