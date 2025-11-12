@@ -59,9 +59,9 @@ export class BridgeSdk {
     const baseUrl = getClientEnvironment(env)
     configureAnalytics({ publishableKey, analyticsHandler, doNotShare, baseUrl })
     // Require a new-format API key, that's got the publishable prefix
-    // if (!isApiKeyValid(publishableKey, env, unsafeApiKey)) {
-    //   analytics().fatal(new Error("Invalid API key, must begin with 'pk_'"))
-    // }
+    if (!isApiKeyValid(publishableKey, env, unsafeApiKey)) {
+      analytics().fatal(new Error("Invalid API key, must begin with 'pk_'"))
+    }
     this.#client = new BridgeApiClient({
       apiKey: publishableKey,
       environment: baseUrl,
