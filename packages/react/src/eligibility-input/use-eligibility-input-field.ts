@@ -5,6 +5,7 @@ import { useEligibilityInput } from "./use-eligibility-input.js"
 import { useHardEligibilityState } from "../hard-eligibility/use-hard-eligibility-state.js"
 import { useSoftEligibilityState } from "../soft-eligibility/index.js"
 import { HardEligibility, SoftEligibility } from "@usebridge/sdk-core"
+import { isValidDatestamp } from "../lib/index.js"
 
 type Field = "firstName" | "lastName" | "dateOfBirth" | "memberId" | "payer" | "state"
 
@@ -84,7 +85,7 @@ export function useEligibilityInputField<F extends Field, T = EligibilityInputSt
     case "dateOfBirth":
       isVisible = requirePatient
       isRequired = requirePatient
-      isValid = Boolean(input.dateOfBirth.value)
+      isValid = isValidDatestamp(input.dateOfBirth.value)
       break
     case "memberId": {
       const memberIdIsRequired = Boolean(

@@ -4,10 +4,12 @@ import {
   useHardEligibilitySubmit,
 } from "@usebridge/sdk-react"
 import { Button, Stack, TextField, Typography } from "@mui/material"
+import { useState } from "react"
 import { PayerAutocompleteField } from "../components/payer-autocomplete-field"
 import { StatePicker } from "../components/state-picker"
 import { DatePicker } from "@mui/x-date-pickers/DatePicker"
-import dayjs, { Dayjs } from "dayjs"
+import dayjs from "dayjs"
+import { useEffect } from "react"
 
 /**
  * User input for the Hard Eligibility request, submits
@@ -17,8 +19,18 @@ export const HardEligibilitySessionForm = () => {
 
   const firstName = useEligibilityInputField("firstName")
   const lastName = useEligibilityInputField("lastName")
-  const dateOfBirth = useEligibilityInputField("dateOfBirth")
   const memberId = useEligibilityInputField("memberId")
+
+  // Track the Date of Birth input for our date picker, but only submit valid dates to Bridge
+  const [dateOfBirthInput, setDateOfBirthInput] = useState<dayjs.Dayjs | null>(null)
+  const dateOfBirth = useEligibilityInputField("dateOfBirth")
+  useEffect(() => {
+    if (!dateOfBirthInput?.isValid()) {
+      dateOfBirth.setValue(null)
+    } else {
+      dateOfBirth.setValue(dateOfBirthInput.format("YYYY-MM-DD"))
+    }
+  }, [dateOfBirth, dateOfBirthInput])
 
   const { isDisabled, submit } = useHardEligibilitySubmit()
 
@@ -45,10 +57,8 @@ export const HardEligibilitySessionForm = () => {
       />
       <DatePicker
         disabled={dateOfBirth.isDisabled}
-        value={dayjs(dateOfBirth.value)}
-        onChange={(newValue: Dayjs | null) => {
-          if (newValue) dateOfBirth.setValue(newValue.toDate())
-        }}
+        value={dateOfBirthInput}
+        onChange={setDateOfBirthInput}
         slotProps={{ textField: { size: "medium", label: "Date of Birth", error: false } }}
       />
       {memberId.isVisible && (

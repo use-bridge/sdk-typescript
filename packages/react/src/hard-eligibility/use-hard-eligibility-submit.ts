@@ -9,6 +9,7 @@ import {
 import { useHardEligibilitySession } from "../hard-eligibility/use-hard-eligibility.js"
 import { useEligibilityInputIsValid } from "../eligibility-input/index.js"
 import { useHardEligibilityState } from "./use-hard-eligibility-state.js"
+import dayjs from "dayjs"
 
 interface HardEligibilitySubmitCallbackArgs {
   clinicalInfo?: ClinicalInfo
@@ -49,7 +50,7 @@ export function useHardEligibilitySubmit(): {
           payerId: payer.value.id,
           firstName: firstName.value.trim(),
           lastName: lastName.value.trim(),
-          dateOfBirth: dateToDateObject(dateOfBirth.value),
+          dateOfBirth: dateToDateObject(dayjs(dateOfBirth.value).toDate()),
           memberId: memberId.value?.trim() || undefined,
         }
       }
