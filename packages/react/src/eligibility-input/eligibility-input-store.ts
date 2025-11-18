@@ -1,5 +1,6 @@
 import { createStore } from "zustand"
 import type { Payer, UsStateCode } from "@usebridge/sdk-core"
+import { isValidDatestamp } from "../lib/index.js"
 
 /**
  * State within the EligibilityInputStore
@@ -28,8 +29,8 @@ export interface EligibilityInputState {
   }
 
   dateOfBirth: {
-    value: Date | null
-    set: (dateOfBirth: Date | null) => void
+    value: string | null
+    set: (dateOfBirth: string | null) => void
   }
 
   memberId: {
@@ -59,8 +60,13 @@ export function createEligibilityInputStore(requirePatient: boolean) {
     },
     dateOfBirth: {
       value: null,
-      set: (dateOfBirth) =>
-        set((s) => ({ ...s, dateOfBirth: { ...s.dateOfBirth, value: dateOfBirth } })),
+      set: (dateOfBirth) => {
+        // If this is set, but isn't valid, we're rejecting immediately
+        if (dateOfBirth && !isValidDatestamp(dateOfBirth)) {
+          throw new Error('dateOfBirth must be a valid date, string value of "YYYY-MM-DD"')
+        }
+        set((s) => ({ ...s, dateOfBirth: { ...s.dateOfBirth, value: dateOfBirth } }))
+      },
     },
     memberId: {
       value: "",
