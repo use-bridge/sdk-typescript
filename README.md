@@ -72,3 +72,6 @@ const sdk = new BridgeSdk({
 - `hard_eligibility.session.updated`
 - `hard_eligibility.session.complete.eligible`
 - `hard_eligibility.session.complete.ineligible`
+- `hard_eligibility.session.complete.out_of_network`
+- `hard_eligibility.session.optimistic_soft_check.error`
+- `hard_eligibility.session.policy`

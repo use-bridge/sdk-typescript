@@ -7,7 +7,7 @@ import type {
   HardEligibilitySessionState,
   HardEligibilitySubmissionArgs,
 } from "./types.js"
-import { filter, find, fromPairs, isEmpty, isNull, maxBy, minBy } from "lodash-es"
+import { compact, filter, find, fromPairs, isEmpty, isNull, map, maxBy, minBy } from "lodash-es"
 import { ServiceTypeRequiredError } from "../errors/service-type-required-error.js"
 import { AlreadySubmittingError } from "../errors/index.js"
 import { BridgeApiClient } from "@usebridge/api"
@@ -18,6 +18,7 @@ import { logger } from "../logger/sdk-logger.js"
 import { resolveProviders } from "../lib/resolve-providers.js"
 import type {
   Policy,
+  ProviderEligibility,
   ResolvedPolicy,
   ResolvedServiceEligibility,
   ServiceEligibility,
@@ -33,6 +34,10 @@ import { analytics } from "../analytics/index.js"
 interface HardEligibilitySessionEvents {
   update: [HardEligibilitySessionState]
 }
+
+// If optimistic soft check is enabled, run it in parallel with policy resolution
+type OptimisticResult = { type: "optimistic"; data: ProviderEligibility[] }
+type PolicyResult = { type: "policy"; data: ResolvedPolicy | null }
 
 const DEFAULT_POLLING_INTERVAL_MS = 1_000 // 1 second
 const DEFAULT_POLICY_TIMEOUT_MS = 20_000 // 20 seconds
@@ -61,7 +66,6 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
     if (isEmpty(sessionConfig.serviceTypeIds)) throw new ServiceTypeRequiredError()
     this.id = uuidv4()
     this.#state = { status: "PENDING", submitCount: 0 }
-    logger()?.info("HardEligibilitySession created", { sessionConfig })
     analytics().event("hard_eligibility.session.created", {
       sessionId: this.id,
       config: sessionConfig,
@@ -89,7 +93,6 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
    * @throws {AlreadySubmittingError} if a request is already in-flight
    */
   async submit(args: HardEligibilitySubmissionArgs): Promise<HardEligibilitySessionState> {
-    logger()?.info("HardEligibilitySession.submit", { args })
     analytics().event("hard_eligibility.session.submit", { sessionId: this.id, args })
     const submitAt = performance.now()
 
@@ -105,8 +108,11 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
       submitCount: this.#state.submitCount + 1,
       firstSubmitAt: this.#state.firstSubmitAt ?? submitAt,
     } as const
+    const mergeStrategy = this.sessionConfig.mergeStrategy ?? "UNION"
 
     let policyId: string
+
+    // If we're using an existing Policy, skip straight to ServiceEligibility
     if (this.usesExistingPolicy) {
       policyId = (this.sessionConfig as Extract<HardEligibilitySessionConfig, { policyId: string }>)
         .policyId
@@ -114,33 +120,156 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
       this.updateState({ ...resetState, status: "WAITING_FOR_SERVICE_ELIGIBILITY" })
     } else {
       this.updateState({ ...resetState, status: "WAITING_FOR_POLICY" })
-      if (!args.patient) {
-        throw new Error(
-          "Patient information is required when session config does not include a policyId",
-        )
-      }
+      const patient = args.patient
+      if (!patient) throw new Error("Patient missing, config does not include a policyId")
+      const { payerId } = patient
 
+      // Create the Policy (starts resolving asynchronously)
       let policy
       try {
-        policy = await this.createPolicy(args.patient, args.state)
+        policy = await this.createPolicy(patient, args.state)
         this.updateState({ policy })
       } catch (err) {
         logger()?.error("HardEligibilitySession.submit.createPolicy.error", { err })
         return this.updateState({ status: "SERVER_ERROR" })
       }
 
-      // Wait for it to get resolved
+      // If enabled, start a Soft Check
+      let optimisticPromise: Promise<OptimisticResult> | undefined
+      if (this.sessionConfig.optimisticSoftCheck) {
+        logger()?.info("HardEligibilitySession.submit.startingOptimisticSoftCheck")
+        optimisticPromise = (async (): Promise<OptimisticResult> => {
+          try {
+            const data = await Promise.all(
+              this.sessionConfig.serviceTypeIds.map((serviceTypeId) =>
+                this.apiClient.providerEligibility.createProviderEligibility({
+                  payerId,
+                  location: { state: args.state },
+                  dateOfService: this.dateOfService(),
+                  serviceTypeId,
+                }),
+              ),
+            )
+            return { type: "optimistic", data }
+          } catch (err) {
+            // If soft check fails, log but don't fail the whole request
+            // Return a promise that never resolves so it doesn't affect the race
+            analytics().event("hard_eligibility.session.optimistic_soft_check.error", {
+              sessionId: this.id,
+              dateOfService: this.dateOfService(),
+              state: args.state,
+              payerId,
+              error: err instanceof Error ? err.message : String(err),
+            })
+            // Return a promise that never resolves
+            return new Promise<OptimisticResult>(() => {})
+          }
+        })()
+      }
+
+      // Start waiting for the Policy resolution
+      const policyPromise = (async (): Promise<PolicyResult> => {
+        try {
+          const result = await this.resolvePolicy(policy)
+          logger()?.info("HardEligibilitySession.submit.resolvePolicy", {
+            resolvedPolicy: result,
+            args,
+            policy,
+          })
+          // Fire analytics event whenever we get a Policy
+          if (result) {
+            analytics().event("hard_eligibility.session.policy", {
+              sessionId: this.id,
+              dateOfService: this.dateOfService(),
+              state: args.state,
+              policyId: result.id,
+              policyStatus: result.status,
+              submitCount: this.#state.submitCount,
+              durationMs: performance.now() - submitAt,
+              durationSinceFirstSubmitMs:
+                performance.now() - (this.#state.firstSubmitAt ?? submitAt),
+            })
+          }
+          return { type: "policy", data: result }
+        } catch (err) {
+          logger()?.error("HardEligibilitySession.submit.resolvePolicy.error", { err })
+          throw err
+        }
+      })()
+
+      // This function inspects the soft check result, moves to INELIGIBLE if there are no Providers
+      const evaluateOptimisticCheck = async (): Promise<HardEligibilitySessionState | null> => {
+        // If we didn't run the soft check, nothing
+        if (!optimisticPromise) return null
+
+        // Get the result from the Promise (this may or may not have resolved yet)
+        const result = await optimisticPromise
+        const { data } = result
+
+        // Use resolveProviders to determine if there are any providers
+        const providers = resolveProviders(data, mergeStrategy)
+
+        // If no providers, patient would be ineligible anyway
+        if (isEmpty(providers)) {
+          const ineligibilityReason = {
+            code: "OUT_OF_NETWORK" as const,
+            message: Strings.ineligibility.NO_PROVIDERS,
+          }
+          // Get all ProviderEligibility IDs
+          const providerEligibilityIds = compact(map(Object.values(data), "id"))
+          analytics().event("hard_eligibility.session.complete.out_of_network", {
+            sessionId: this.id,
+            dateOfService: this.dateOfService(),
+            state: args.state,
+            payerId,
+            providerEligibilityIds,
+            submitCount: this.#state.submitCount,
+            durationMs: performance.now() - submitAt,
+            durationSinceFirstSubmitMs: performance.now() - (this.#state.firstSubmitAt ?? submitAt),
+          })
+          return this.updateState({ status: "INELIGIBLE", ineligibilityReason })
+        }
+        return null
+      }
+
+      // If optimistic soft check got started, race it against the Policy resolution
+      if (optimisticPromise) {
+        try {
+          const raceResult = await Promise.race([optimisticPromise, policyPromise])
+          // If the winner is the optimistic check, we're going to bail if there are no Providers anyway
+          if (raceResult.type === "optimistic") {
+            const result = await evaluateOptimisticCheck()
+            if (result) return result
+          }
+        } catch (err) {
+          // If race fails, fall through to normal policy resolution
+          logger()?.error("HardEligibilitySession.submit.optimisticSoftCheckRace.error", { err })
+        }
+      }
+
+      // Wait for policy to resolve (either it won the race, or optimistic check didn't show ineligible)
       let resolvedPolicy: ResolvedPolicy | null
       try {
-        resolvedPolicy = await this.resolvePolicy(policy)
+        const policyResult = await policyPromise
+        resolvedPolicy = policyResult.data
         logger()?.info("HardEligibilitySession.submit.resolvePolicy", {
           resolvedPolicy,
           args,
           policy,
         })
       } catch (err) {
+        // If we have an error, see if we got an optimistic ineligible result first
+        const result = await evaluateOptimisticCheck()
+        if (result) return result
+        // Otherwise, respect this as an unexpected server error
         logger()?.error("HardEligibilitySession.submit.resolvePolicy.error", { err })
         return this.updateState({ status: "SERVER_ERROR" })
+      }
+
+      // If the Policy isn't CONFIRMED, and we have an optimistic ineligible result, use that
+      if (resolvedPolicy?.status !== "CONFIRMED") {
+        const result = await evaluateOptimisticCheck()
+        if (result) return result
       }
 
       // If the Policy resolved to null, it timed out
@@ -200,7 +329,6 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
     // Resolve the combined eligibility status
     const ineligibilityReason = this.ineligibilityReasonFromServiceEligibility(nonNullEligibility)
     if (ineligibilityReason) {
-      logger()?.info("HardEligibilitySession.submit.ineligible")
       analytics().event("hard_eligibility.session.complete.ineligible", {
         sessionId: this.id,
         dateOfService: this.dateOfService(),
@@ -216,14 +344,10 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
     }
 
     // Resolve the Providers
-    const providers = resolveProviders(
-      nonNullEligibility,
-      this.sessionConfig.mergeStrategy ?? "UNION",
-    )
+    const providers = resolveProviders(nonNullEligibility, mergeStrategy)
 
     // If there are no Providers, we're INELIGIBLE even if the plan covers it
     if (isEmpty(providers)) {
-      logger()?.info("HardEligibilitySession.submit.noEligibleProviders")
       const ineligibilityReason = {
         code: "PROVIDERS",
         message: Strings.ineligibility.NO_PROVIDERS,
@@ -246,12 +370,10 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
     const patientResponsibility = this.getPatientResponsibility(nonNullEligibility)
     // This is unexpected, should be guaranteed PatientResponsibility if we have something ELIGIBLE
     if (!patientResponsibility) {
-      logger()?.error("HardEligibilitySession.submit.noPatientResponsibility")
       analytics().fatal(new Error("No patientResponsibility found in ServiceEligibility"))
       throw new Error("Unreachable")
     }
 
-    logger()?.info("HardEligibilitySession.submit.eligible", { providers, patientResponsibility })
     analytics().event("hard_eligibility.session.complete.eligible", {
       sessionId: this.id,
       dateOfService: this.dateOfService(),
@@ -378,8 +500,6 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
             logger()?.info("listenForPolicyUpdates.aborted")
             break
           }
-          // This is assumed to be a network error, and, we can try again
-          logger()?.error("listenForPolicyUpdates.error", { err })
         } finally {
           await new Promise((resolve) => setTimeout(resolve, 1_000))
         }

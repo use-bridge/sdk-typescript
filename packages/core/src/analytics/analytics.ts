@@ -125,6 +125,8 @@ export class Analytics {
    * Tracks an event
    */
   event<T extends AnalyticsEventName>(event: T, data: AnalyticsEvent<T>): void {
+    // Always log the event
+    logger()?.info(`Analytics.event.${event}`, { event, data })
     // If this is server-side rendering, do nothing
     if (typeof window === "undefined") return
     // Send to Bridge
@@ -149,6 +151,8 @@ export class Analytics {
    * @throws the error it was given
    */
   fatal(error: Error): never {
+    // Always log the fatal error
+    logger()?.error("Analytics.fatal", { error })
     // If this is server-side rendering, do nothing
     if (typeof window === "undefined") throw error
     // Send to Bridge
