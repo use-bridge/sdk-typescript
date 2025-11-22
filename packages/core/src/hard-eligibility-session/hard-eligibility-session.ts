@@ -136,10 +136,12 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
 
       // If enabled, start a Soft Check
       let optimisticPromise: Promise<OptimisticResult> | undefined
+      let optimisticCheckFailed = false
       if (this.sessionConfig.optimisticSoftCheck) {
         logger()?.info("HardEligibilitySession.submit.startingOptimisticSoftCheck")
         optimisticPromise = (async (): Promise<OptimisticResult> => {
           try {
+            // Run each ServiceType through a ProviderEligibility
             const data = await Promise.all(
               this.sessionConfig.serviceTypeIds.map((serviceTypeId) =>
                 this.apiClient.providerEligibility.createProviderEligibility({
@@ -150,10 +152,16 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
                 }),
               ),
             )
+
+            // Resolve the Providers from what we have
+            const providers = resolveProviders(data, mergeStrategy)
+            // If there are
+
             return { type: "optimistic", data }
           } catch (err) {
             // If soft check fails, log but don't fail the whole request
-            // Return a promise that never resolves so it doesn't affect the race
+            // Mark it as failed so we don't hang when evaluating it later
+            optimisticCheckFailed = true
             analytics().event("hard_eligibility.session.optimistic_soft_check.error", {
               sessionId: this.id,
               dateOfService: this.dateOfService(),
@@ -161,7 +169,7 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
               payerId,
               error: err instanceof Error ? err.message : String(err),
             })
-            // Return a promise that never resolves
+            // Return a promise that never resolves so it doesn't affect the race
             return new Promise<OptimisticResult>(() => {})
           }
         })()
@@ -201,6 +209,9 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
       const evaluateOptimisticCheck = async (): Promise<HardEligibilitySessionState | null> => {
         // If we didn't run the soft check, nothing
         if (!optimisticPromise) return null
+
+        // If the optimistic check failed, trust the policy failure instead of hanging
+        if (optimisticCheckFailed) return null
 
         // Get the result from the Promise (this may or may not have resolved yet)
         const result = await optimisticPromise
