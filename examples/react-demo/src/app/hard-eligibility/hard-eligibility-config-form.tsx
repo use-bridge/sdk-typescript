@@ -4,8 +4,8 @@ import {
   type HardEligibilitySessionConfigBase,
   type ServiceTypeMergeStrategy,
 } from "@usebridge/sdk-core"
-import { Alert, Button, Stack } from "@mui/material"
-import { type FC, useCallback, useState } from "react"
+import { Alert, Button, Checkbox, FormControlLabel, Stack } from "@mui/material"
+import { type FC, useState } from "react"
 import { ServiceTypePicker } from "../components/service-type-picker"
 import { MergeStrategyPicker } from "../components/merge-strategy-picker"
 import { DateObjectPicker } from "../components/date-object-picker"
@@ -29,6 +29,7 @@ export const HardligibilityConfigForm: FC<HardEligibilityConfigFormProps> = ({
   const [mergeStrategy, setMergeStrategy] = useState<ServiceTypeMergeStrategy>("UNION")
   const [dateOfService, setDateOfService] = useState<DateObject>()
   const [estimateSelection, setEstimateSelection] = useState<EstimateSelection>({ mode: "HIGHEST" })
+  const [optimisticSoftCheck, setOptimisticSoftCheck] = useState(false)
 
   const isValidConfig = serviceTypeIds?.length ?? 0 > 0
 
@@ -38,14 +39,30 @@ export const HardligibilityConfigForm: FC<HardEligibilityConfigFormProps> = ({
       <MergeStrategyPicker onChange={setMergeStrategy} disabled={disabled} />
       <DateObjectPicker onChange={setDateOfService} disabled={disabled} />
       <EstimateSelectionPicker onChange={setEstimateSelection} disabled={disabled} />
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={optimisticSoftCheck}
+            onChange={(e) => setOptimisticSoftCheck(e.target.checked)}
+            disabled={disabled}
+          />
+        }
+        label="Enable Optimistic Soft Check"
+      />
 
       <Button
         disabled={disabled || !isValidConfig}
         variant="contained"
-        onClick={useCallback(() => {
+        onClick={() => {
           if (!isValidConfig) throw new Error()
-          onSubmit({ serviceTypeIds, mergeStrategy, dateOfService, estimateSelection })
-        }, [serviceTypeIds, mergeStrategy, dateOfService, isValidConfig, onSubmit])}
+          onSubmit({
+            serviceTypeIds,
+            mergeStrategy,
+            dateOfService,
+            estimateSelection,
+            optimisticSoftCheck,
+          })
+        }}
       >
         Create Hard Eligibility Session
       </Button>
