@@ -152,11 +152,6 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
                 }),
               ),
             )
-
-            // Resolve the Providers from what we have
-            const providers = resolveProviders(data, mergeStrategy)
-            // If there are
-
             return { type: "optimistic", data }
           } catch (err) {
             // If soft check fails, log but don't fail the whole request
