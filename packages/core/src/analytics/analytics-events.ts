@@ -123,6 +123,36 @@ interface AnalyticsEvents {
     durationMs: number
     durationSinceFirstSubmitMs: number
   }
+  // Hard Eligibility Session complete, out of network (from optimistic soft check)
+  "hard_eligibility.session.complete.out_of_network": {
+    sessionId: string
+    dateOfService: string
+    state: UsStateCode
+    payerId: string
+    providerEligibilityIds: string[]
+    submitCount: number
+    durationMs: number
+    durationSinceFirstSubmitMs: number
+  }
+  // Hard Eligibility Session optimistic soft check failed
+  "hard_eligibility.session.optimistic_soft_check.error": {
+    sessionId: string
+    dateOfService: string
+    state: UsStateCode
+    payerId: string
+    error: string
+  }
+  // Hard Eligibility Session Policy resolved
+  "hard_eligibility.session.policy": {
+    sessionId: string
+    dateOfService: string
+    state: UsStateCode
+    policyId: string
+    policyStatus: "CONFIRMED" | "INVALID"
+    submitCount: number
+    durationMs: number
+    durationSinceFirstSubmitMs: number
+  }
 }
 
 /**

@@ -59,7 +59,6 @@ export class SoftEligibilitySession extends EventEmitter<SoftEligibilitySessionE
    * @throws {AlreadySubmittingError} if a request is already in-flight
    */
   async submit(args: SoftEligibilitySubmissionArgs): Promise<SoftEligibilitySessionState> {
-    logger()?.info("SoftEligibilitySession.submit", { id: this.id, args })
     analytics().event("soft_eligibility.session.submit", { sessionId: this.id, args })
 
     // One request at a time
@@ -85,7 +84,6 @@ export class SoftEligibilitySession extends EventEmitter<SoftEligibilitySessionE
 
       // If there are none, we're INELIGIBLE
       if (isEmpty(providers)) {
-        logger()?.info("SoftEligibilitySession.resolved.noProviders")
         analytics().event("soft_eligibility.session.complete.ineligible", {
           sessionId: this.id,
           dateOfService: this.dateOfService(),
@@ -96,7 +94,6 @@ export class SoftEligibilitySession extends EventEmitter<SoftEligibilitySessionE
       }
 
       // Otherwise, this is good
-      logger()?.info("SoftEligibilitySession.submit.eligible")
       analytics().event("soft_eligibility.session.complete.eligible", {
         sessionId: this.id,
         dateOfService: this.dateOfService(),
