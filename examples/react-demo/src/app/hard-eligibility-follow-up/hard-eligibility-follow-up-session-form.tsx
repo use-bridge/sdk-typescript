@@ -1,7 +1,4 @@
-import {
-  useHardEligibilityState,
-  useHardEligibilitySubmit,
-} from "@usebridge/sdk-react"
+import { useHardEligibilityState, useHardEligibilitySubmit } from "@usebridge/sdk-react"
 import { Button, Stack, Typography } from "@mui/material"
 import { StatePicker } from "../components/state-picker"
 
@@ -25,4 +22,3 @@ export const HardEligibilityFollowUpSessionForm = () => {
     </Stack>
   )
 }
-
