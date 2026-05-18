@@ -21,7 +21,7 @@ interface HardEligibilitySubmitCallbackArgs {
  */
 export function useHardEligibilitySubmit(): {
   isDisabled: boolean
-  submit: () => Promise<HardEligibilitySessionState>
+  submit: (args?: HardEligibilitySubmitCallbackArgs) => Promise<HardEligibilitySessionState>
 } {
   const session = useHardEligibilitySession()
   const { state, payer, firstName, lastName, dateOfBirth, memberId } = useEligibilityInput()
