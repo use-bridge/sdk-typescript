@@ -15,13 +15,18 @@ interface HardEligibilitySubmitCallbackArgs {
   clinicalInfo?: ClinicalInfo
 }
 
+interface HardEligibilitySubmitFn {
+  (): Promise<HardEligibilitySessionState>
+  (args: HardEligibilitySubmitCallbackArgs): Promise<HardEligibilitySessionState>
+}
+
 /**
  * Returns a function to submit requests into the Hard Eligibility Session
  * Parses the arguments required for the submission from the EligibilityInput
  */
 export function useHardEligibilitySubmit(): {
   isDisabled: boolean
-  submit: (args?: HardEligibilitySubmitCallbackArgs) => Promise<HardEligibilitySessionState>
+  submit: HardEligibilitySubmitFn
 } {
   const session = useHardEligibilitySession()
   const { state, payer, firstName, lastName, dateOfBirth, memberId } = useEligibilityInput()
@@ -33,7 +38,7 @@ export function useHardEligibilitySubmit(): {
 
   const isDisabled = !inputIsValid || !HardEligibility.canSubmit(status)
 
-  const submit = useCallback(
+  const submit = useCallback<HardEligibilitySubmitFn>(
     ({ clinicalInfo }: HardEligibilitySubmitCallbackArgs = {}) => {
       if (!state.value) throw new Error("State is required")
 
