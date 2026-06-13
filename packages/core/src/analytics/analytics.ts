@@ -30,6 +30,7 @@ export class Analytics {
   private entries: Entry[] = []
   private index = 0
   private debouncedSubmitEntries: ReturnType<typeof debounce>
+  private readonly isBrowser = typeof window !== "undefined"
 
   constructor(private readonly config: AnalyticsConfig) {
     // Create a debounced version of submitEntries
@@ -83,6 +84,8 @@ export class Analytics {
   private getStableId(): string {
     // If we have one already, use it
     if (this._stableId) return this._stableId
+    // If this is not in browser, generate a new ID each time
+    if (!this.isBrowser) return uuidv4()
     // Fetch from local storage, and use that if it exists
     try {
       const existing = window.localStorage.getItem("bridge.stableId")
@@ -108,10 +111,9 @@ export class Analytics {
   }
 
   private entry(): Omit<Entry, "type" | "payload"> {
-    const context =
-      typeof window !== "undefined"
-        ? { location: window.location.href, userAgent: window.navigator.userAgent }
-        : {}
+    const context = this.isBrowser
+      ? { location: window.location.href, userAgent: window.navigator.userAgent }
+      : {}
     return {
       id: uuidv4(),
       stableId: this.getStableId(),
@@ -128,7 +130,7 @@ export class Analytics {
     // Always log the event
     logger()?.info(`Analytics.event.${event}`, { event, data })
     // If this is server-side rendering, do nothing
-    if (typeof window === "undefined") return
+    if (!this.isBrowser) return
     // Send to Bridge
     try {
       if (!this.config.doNotShare) {
@@ -154,7 +156,7 @@ export class Analytics {
     // Always log the fatal error
     logger()?.error("Analytics.fatal", { error })
     // If this is server-side rendering, do nothing
-    if (typeof window === "undefined") throw error
+    if (!this.isBrowser) throw error
     // Send to Bridge
     try {
       if (!this.config.doNotShare) {
