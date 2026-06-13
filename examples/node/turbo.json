@@ -1,0 +1,8 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": { "outputs": [] },
+    "dev": { "cache": false, "persistent": true },
+    "test": { "cache": false }
+  }
+}

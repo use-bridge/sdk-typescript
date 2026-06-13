@@ -1,0 +1,28 @@
+{
+  "name": "node-demo",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "search": "tsx src/scripts/search-payers.ts",
+    "soft": "tsx src/scripts/soft-eligibility.ts",
+    "hard": "tsx src/scripts/hard-eligibility.ts",
+    "build": "echo \"(no build)\"",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "echo \"(no tests)\"",
+    "clean": "echo \"(no clean)\""
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^7.5.1",
+    "@usebridge/api": ">=1.1.0-0",
+    "@usebridge/sdk": "workspace:*",
+    "@usebridge/sdk-core": "workspace:*",
+    "dotenv": "^16.6.1",
+    "envalid": "^8.1.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.3"
+  }
+}
