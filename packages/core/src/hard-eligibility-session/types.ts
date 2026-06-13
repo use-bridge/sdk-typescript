@@ -60,8 +60,8 @@ export interface HardEligibilitySessionConfigBase {
   pollingIntervalMs?: number
   /**
    * When enabled, runs a Soft Eligibility check in parallel with Policy resolution.
-   * If Policy resolution fails and the Soft check shows the patient would be ineligible anyway,
-   * returns INELIGIBLE with OUT_OF_NETWORK code instead of POLICY_ERROR.
+   * If the Soft check shows no providers for the payer/state, returns INELIGIBLE with
+   * OUT_OF_NETWORK even when Policy resolution fails, times out, or returns INVALID.
    * Only applies when creating a new Policy (not when using an existing policyId).
    */
   optimisticSoftCheck?: boolean

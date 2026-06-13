@@ -222,7 +222,7 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
             message: Strings.ineligibility.NO_PROVIDERS,
           }
           // Get all ProviderEligibility IDs
-          const providerEligibilityIds = compact(map(Object.values(data), "id"))
+          const providerEligibilityIds = compact(map(data, "id"))
           analytics().event("hard_eligibility.session.complete.out_of_network", {
             sessionId: this.id,
             dateOfService: this.dateOfService(),
@@ -258,11 +258,6 @@ export class HardEligibilitySession extends EventEmitter<HardEligibilitySessionE
       try {
         const policyResult = await policyPromise
         resolvedPolicy = policyResult.data
-        logger()?.info("HardEligibilitySession.submit.resolvePolicy", {
-          resolvedPolicy,
-          args,
-          policy,
-        })
       } catch (err) {
         // If we have an error, see if we got an optimistic ineligible result first
         const result = await evaluateOptimisticCheck()
