@@ -22,7 +22,8 @@ export async function runHardEligibility(
     return session.submit({ state, clinicalInfo })
   }
 
-  const { state, patient, clinicalInfo, policyId, ...sessionConfig } = args
+  const { state, patient, clinicalInfo, ...sessionConfig } = args
+  delete (sessionConfig as Partial<Record<"policyId", unknown>>).policyId
   const session = sdk.createHardEligibilitySession(sessionConfig)
   return session.submit({ state, patient, clinicalInfo })
 }
