@@ -22,7 +22,7 @@ export async function runHardEligibility(
     return session.submit({ state, clinicalInfo })
   }
 
-  const { state, patient, clinicalInfo, ...sessionConfig } = args
+  const { state, patient, clinicalInfo, policyId, ...sessionConfig } = args
   const session = sdk.createHardEligibilitySession(sessionConfig)
   return session.submit({ state, patient, clinicalInfo })
 }

@@ -1,5 +1,10 @@
 import { describe, it, expect, jest } from "@jest/globals"
-import type { HardEligibilitySession, HardEligibilitySessionState } from "@usebridge/sdk-core"
+import type {
+  HardEligibilitySession,
+  HardEligibilitySessionState,
+  HardEligibilitySubmissionArgs,
+} from "@usebridge/sdk-core"
+import type { HardEligibilityArgs } from "../client/types"
 import { runHardEligibility } from "./hard-eligibility"
 
 describe("runHardEligibility", () => {
@@ -37,6 +42,38 @@ describe("runHardEligibility", () => {
       serviceTypeIds: ["svt_abc"],
       mergeStrategy: "INTERSECTION",
       optimisticSoftCheck: true,
+    })
+    expect(submit).toHaveBeenCalledWith({
+      state: "NY",
+      patient,
+      clinicalInfo: { diagnoses: ["F41.1"] },
+    })
+    expect(result).toBe(submitResult)
+  })
+
+  it("omits a falsy policyId from session config for a new policy", async () => {
+    const submitResult: HardEligibilitySessionState = {
+      status: "ELIGIBLE",
+      submitCount: 1,
+    }
+
+    const submit = jest.fn<HardEligibilitySession["submit"]>().mockResolvedValue(submitResult)
+    const createHardEligibilitySession = jest
+      .fn<(...args: unknown[]) => HardEligibilitySession>()
+      .mockReturnValue({ submit } as unknown as HardEligibilitySession)
+
+    const sdk = { createHardEligibilitySession }
+
+    const result = await runHardEligibility(sdk, {
+      serviceTypeIds: ["svt_abc"],
+      policyId: undefined,
+      state: "NY",
+      patient,
+      clinicalInfo: { diagnoses: ["F41.1"] },
+    } as HardEligibilityArgs & { policyId?: undefined } & HardEligibilitySubmissionArgs)
+
+    expect(createHardEligibilitySession).toHaveBeenCalledWith({
+      serviceTypeIds: ["svt_abc"],
     })
     expect(submit).toHaveBeenCalledWith({
       state: "NY",
