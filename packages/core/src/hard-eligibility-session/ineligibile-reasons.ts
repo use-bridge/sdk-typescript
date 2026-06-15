@@ -7,6 +7,8 @@ export type IneligibilityReasonCode =
   | "DENIED"
   // Policy-level eligibility, but no providers enrolled
   | "PROVIDERS"
+  // Soft check indicates patient would be ineligible (out of network)
+  | "OUT_OF_NETWORK"
 
 /**
  * Explains why a patient isn't eligible

@@ -70,7 +70,7 @@ export const HardEligibilitySessionForm = () => {
         />
       )}
 
-      <Button disabled={isDisabled} variant="contained" onClick={submit}>
+      <Button disabled={isDisabled} variant="contained" onClick={() => void submit()}>
         Submit Hard Eligibility
       </Button>
     </Stack>
