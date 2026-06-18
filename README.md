@@ -2,7 +2,7 @@
 
 ## Documentation
 
-- [React SDK Guide](https://docs.usebridge.com/documentation/getting-started/react-sdk)
+- [Eligibility SDK Guide](https://docs.usebridge.com/documentation/getting-started/eligibility-sdk)
 - [Bridge API Documentation](https://docs.usebridge.com)
 - [Bridge TypeScript API Client](https://github.com/use-bridge/api-typescript)
 
