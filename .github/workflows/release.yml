@@ -35,6 +35,7 @@ jobs:
           VERSION=${VERSION#v}
           yarn workspace @usebridge/sdk-core version $VERSION -i
           yarn workspace @usebridge/sdk-react version $VERSION -i
+          yarn workspace @usebridge/sdk version $VERSION -i
 
       - name: Build and Publish packages
         run: yarn turbo run publish --filter=@usebridge/sdk-core --filter=@usebridge/sdk-react --filter=@usebridge/sdk
