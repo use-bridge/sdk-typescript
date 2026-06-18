@@ -8,6 +8,11 @@
 
 ## Packages
 
+### [`@usebridge/sdk`](https://www.npmjs.com/package/@usebridge/sdk)
+
+The default Bridge SDK for non-React environments — API routes, workers, scripts, and vanilla JS clients.
+Call `softEligibility()` or `hardEligibility()` with complete inputs and receive the final result.
+
 ### [`@usebridge/sdk-react`](https://www.npmjs.com/package/@usebridge/sdk-react)
 
 The headless React SDK to drive patient eligibility.
@@ -15,10 +20,32 @@ Hooks allow you to focus on building your UX/UI, rather than the complexity of e
 
 ### [`@usebridge/sdk-core`](https://www.npmjs.com/package/@usebridge/sdk-core)
 
-TypeScript SDK, browser and node-compatible, for managing eligibility checks.
-Provides an abstraction over the eligibility API's.
+Low-level, framework-agnostic SDK for managing eligibility checks.
+Use when you need raw session control, EventEmitter lifecycle, or other advanced behavior.
 
-_If using React, do not use this directly._
+| Use case                            | Package                |
+| ----------------------------------- | ---------------------- |
+| React app                           | `@usebridge/sdk-react` |
+| Server, script, or non-React client | `@usebridge/sdk`       |
+| Raw session control / EventEmitter  | `@usebridge/sdk-core`  |
+
+## Usage (`@usebridge/sdk`)
+
+```typescript
+import { createBridgeClient } from "@usebridge/sdk"
+import type { BridgeSdkConfig } from "@usebridge/sdk-core"
+
+const bridge = createBridgeClient({
+  publishableKey: "pk_...",
+  environment: "sandbox",
+} satisfies BridgeSdkConfig)
+
+const result = await bridge.softEligibility({
+  serviceTypeIds: ["svt_..."],
+  payerId: "pyr_...",
+  state: "CA",
+})
+```
 
 ## Analytics Events
 
