@@ -37,6 +37,11 @@ jobs:
           yarn workspace @usebridge/sdk-react version $VERSION -i
           yarn workspace @usebridge/sdk version $VERSION -i
 
+      - name: Verify npm publish auth
+        run: yarn workspace @usebridge/sdk-core npm whoami --publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Build and Publish packages
         run: yarn turbo run publish --filter=@usebridge/sdk-core --filter=@usebridge/sdk-react --filter=@usebridge/sdk
         env:
