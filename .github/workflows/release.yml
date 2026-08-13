@@ -12,19 +12,22 @@ jobs:
       pull-requests: write
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - name: Enable Corepack
-        run: corepack enable
-
+      # setup-node@v5 auto-detects yarn from packageManager and runs it before
+      # Corepack is enabled; disable that and enable Corepack explicitly.
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: "22.x"
           registry-url: "https://registry.npmjs.org"
           scope: "@usebridge"
+          package-manager-cache: false
+
+      - name: Enable Corepack
+        run: corepack enable
 
       - name: Install deps
         run: yarn install --immutable
