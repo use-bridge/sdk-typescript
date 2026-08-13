@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useIsMounted } from "usehooks-ts"
+import { BridgeApiError } from "@usebridge/api"
 import { retryLoop, RetryLoopCancelledError } from "../lib/retry-loop.js"
 import { usePayerSearch } from "./use-payer-search.js"
 import { omit } from "lodash-es"
@@ -7,6 +8,31 @@ import type { Payer } from "@usebridge/sdk-core"
 
 // We'll store these locally, they won't change within a user session
 const resultCache = new Map<string, Payer[]>()
+
+// Results are truncated to 'limit', so it forms part of the cache identity
+function toCacheKey(normalizedQuery: string, limit: number): string {
+  return `${limit}:${normalizedQuery}`
+}
+
+function toError(err: unknown): Error {
+  if (err instanceof Error) return err
+  return new Error(String(err))
+}
+
+/**
+ * Whether a payer-search failure is worth retrying
+ * Retries transient failures; fails on irrecoverable client errors
+ */
+function isRetryablePayerSearchError(err: unknown): boolean {
+  if (err instanceof BridgeApiError && err.statusCode != null) {
+    // Rate-limited/time-out: keep trying
+    if (err.statusCode === 429 || err.statusCode === 408) return true
+    // Other 4xx (bad request, forbidden, etc.): won't recover by retrying
+    if (err.statusCode >= 400 && err.statusCode < 500) return false
+  }
+  // Network, timeout, 5xx, unknown: keep looping
+  return true
+}
 
 /**
  * Providers autocomplete functionality for the Payer search
@@ -32,6 +58,10 @@ export function usePayerAutocomplete(
    * The results to display currently
    */
   results: Payer[]
+  /**
+   * Irrecoverable error from the latest search, if any
+   */
+  error?: Error
 } {
   // We expect a 'BridgeSdk' to be available in the context
   const payerSearch = usePayerSearch()
@@ -41,6 +71,7 @@ export function usePayerAutocomplete(
   // Track the state
   const [isLoading, setIsLoading] = useState(false)
   const [results, setResults] = useState<Payer[]>([])
+  const [error, setError] = useState<Error | undefined>()
 
   // We don't need to run again if it's just whitespace
   const normalizedQuery = query.trim().toLowerCase()
@@ -54,11 +85,14 @@ export function usePayerAutocomplete(
     // Tick the request ID up, so we ignore everything before this
     const thisId = ++reqId.current
 
+    const cacheKey = toCacheKey(normalizedQuery, limit)
+
     // If the query is in the cache, use it immediately
-    const cachedResults = resultCache.get(normalizedQuery)
+    const cachedResults = resultCache.get(cacheKey)
     if (cachedResults) {
       setIsLoading(false)
       setResults(cachedResults)
+      setError(undefined)
       return
     }
 
@@ -66,19 +100,24 @@ export function usePayerAutocomplete(
     async function run() {
       // Move into the loading state, we're going to be waiting
       setIsLoading(true)
+      setError(undefined)
 
       try {
-        // Run the search on a loop, until it resolves, or we unmount/move on
+        // Run the search on a loop, until it resolves, fails irrecoverably, or we unmount/move on
         const response = await retryLoop(
           () => payerSearch({ query: normalizedQuery, limit }),
-          () => isMounted() && thisId === reqId.current,
+          (err) => {
+            if (!isMounted() || thisId !== reqId.current) return "cancel"
+            if (!isRetryablePayerSearchError(err)) return "fail"
+            return "retry"
+          },
         )
 
         // If we've unmounted, do nothing
         if (!isMounted()) return
 
         // Write these into the cache
-        resultCache.set(normalizedQuery, response.items)
+        resultCache.set(cacheKey, response.items)
 
         // If this is not the latest request, ignore it
         if (thisId !== reqId.current) return
@@ -86,10 +125,15 @@ export function usePayerAutocomplete(
         // Use these results
         setIsLoading(false)
         setResults(response.items)
+        setError(undefined)
       } catch (err) {
         // If the retry loop was canceled, we don't need to worry about this
         if (err instanceof RetryLoopCancelledError) return
-        throw err
+        if (!isMounted() || thisId !== reqId.current) return
+
+        setResults([])
+        setIsLoading(false)
+        setError(toError(err))
       }
     }
 
@@ -98,7 +142,7 @@ export function usePayerAutocomplete(
 
   // Memoize what we return here
   return useMemo(
-    () => ({ isLoading, results: results.map((r) => omit(r, "code")) }),
-    [isLoading, results],
+    () => ({ isLoading, results: results.map((r) => omit(r, "code")), error }),
+    [isLoading, results, error],
   )
 }

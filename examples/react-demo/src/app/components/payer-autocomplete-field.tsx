@@ -7,7 +7,7 @@ import type { Payer } from "@usebridge/sdk-core"
 
 export const PayerAutocompleteField = () => {
   const [inputValue, setInputValue] = useState("")
-  const { results, isLoading } = usePayerAutocomplete(inputValue, { limit: 50 })
+  const { results, isLoading, error } = usePayerAutocomplete(inputValue, { limit: 50 })
   const { value, setValue, isDisabled } = useEligibilityInputField("payer")
 
   return (
@@ -25,6 +25,7 @@ export const PayerAutocompleteField = () => {
         <TextField
           {...params}
           disabled={isDisabled}
+          error={Boolean(error)}
           variant="outlined"
           size="medium"
           label="Payer"
