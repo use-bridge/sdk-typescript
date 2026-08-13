@@ -9,6 +9,11 @@ import type { Payer } from "@usebridge/sdk-core"
 // We'll store these locally, they won't change within a user session
 const resultCache = new Map<string, Payer[]>()
 
+// Results are truncated to 'limit', so it forms part of the cache identity
+function toCacheKey(normalizedQuery: string, limit: number): string {
+  return `${limit}:${normalizedQuery}`
+}
+
 function toError(err: unknown): Error {
   if (err instanceof Error) return err
   return new Error(String(err))
@@ -80,8 +85,10 @@ export function usePayerAutocomplete(
     // Tick the request ID up, so we ignore everything before this
     const thisId = ++reqId.current
 
+    const cacheKey = toCacheKey(normalizedQuery, limit)
+
     // If the query is in the cache, use it immediately
-    const cachedResults = resultCache.get(normalizedQuery)
+    const cachedResults = resultCache.get(cacheKey)
     if (cachedResults) {
       setIsLoading(false)
       setResults(cachedResults)
@@ -110,7 +117,7 @@ export function usePayerAutocomplete(
         if (!isMounted()) return
 
         // Write these into the cache
-        resultCache.set(normalizedQuery, response.items)
+        resultCache.set(cacheKey, response.items)
 
         // If this is not the latest request, ignore it
         if (thisId !== reqId.current) return
@@ -124,6 +131,7 @@ export function usePayerAutocomplete(
         if (err instanceof RetryLoopCancelledError) return
         if (!isMounted() || thisId !== reqId.current) return
 
+        setResults([])
         setIsLoading(false)
         setError(toError(err))
       }
