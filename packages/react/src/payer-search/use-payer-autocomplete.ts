@@ -20,8 +20,8 @@ function toError(err: unknown): Error {
  */
 function isRetryablePayerSearchError(err: unknown): boolean {
   if (err instanceof BridgeApiError && err.statusCode != null) {
-    // Rate-limited: keep trying
-    if (err.statusCode === 429) return true
+    // Rate-limited/time-out: keep trying
+    if (err.statusCode === 429 || err.statusCode === 408) return true
     // Other 4xx (bad request, forbidden, etc.): won't recover by retrying
     if (err.statusCode >= 400 && err.statusCode < 500) return false
   }
