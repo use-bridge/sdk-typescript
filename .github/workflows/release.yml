@@ -22,8 +22,6 @@ jobs:
         with:
           # npm trusted publishing requires npm >=11.5.1; Node 24 includes it.
           node-version: "24.x"
-          registry-url: "https://registry.npmjs.org"
-          scope: "@usebridge"
           package-manager-cache: false
 
       - name: Enable Corepack
