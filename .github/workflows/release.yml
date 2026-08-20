@@ -8,8 +8,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      pull-requests: write
+      contents: read
       id-token: write
     steps:
       - uses: actions/checkout@v5
@@ -21,7 +20,8 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v5
         with:
-          node-version: "22.x"
+          # npm trusted publishing requires npm >=11.5.1; Node 24 includes it.
+          node-version: "24.x"
           registry-url: "https://registry.npmjs.org"
           scope: "@usebridge"
           package-manager-cache: false
@@ -40,12 +40,19 @@ jobs:
           yarn workspace @usebridge/sdk-react version $VERSION -i
           yarn workspace @usebridge/sdk version $VERSION -i
 
-      - name: Verify npm publish auth
-        run: yarn npm whoami --scope usebridge
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Build packages
+        run: yarn turbo run build --filter=@usebridge/sdk-core --filter=@usebridge/sdk-react --filter=@usebridge/sdk
 
-      - name: Build and Publish packages
-        run: yarn turbo run publish --filter=@usebridge/sdk-core --filter=@usebridge/sdk-react --filter=@usebridge/sdk
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # Pack with Yarn so workspace dependency ranges are converted to the
+      # release version, then publish with npm so it can use GitHub OIDC.
+      - name: Pack packages
+        run: |
+          yarn workspace @usebridge/sdk-core pack --out "$RUNNER_TEMP/usebridge-sdk-core.tgz"
+          yarn workspace @usebridge/sdk-react pack --out "$RUNNER_TEMP/usebridge-sdk-react.tgz"
+          yarn workspace @usebridge/sdk pack --out "$RUNNER_TEMP/usebridge-sdk.tgz"
+
+      - name: Publish packages
+        run: |
+          npm publish "$RUNNER_TEMP/usebridge-sdk-core.tgz" --access public
+          npm publish "$RUNNER_TEMP/usebridge-sdk-react.tgz" --access public
+          npm publish "$RUNNER_TEMP/usebridge-sdk.tgz" --access public

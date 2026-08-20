@@ -3,6 +3,11 @@
   "version": "0.1.0",
   "description": "React hooks for Bridge headless SDK",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/use-bridge/sdk-typescript.git",
+    "directory": "packages/react"
+  },
   "sideEffects": false,
   "main": "dist/index.cjs",
   "module": "dist/index.js",
