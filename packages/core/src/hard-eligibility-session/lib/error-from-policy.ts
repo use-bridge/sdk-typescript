@@ -39,6 +39,13 @@ export function errorFromPolicy(policy: Policy): HardEligibilityError {
         retryable: false,
         forceMemberId: true,
       }
+    case "DUPLICATE":
+      return {
+        code: "CONFLICT_MEMBER_ID",
+        message: Strings.policyError.CONFLICT_MEMBER_ID,
+        retryable: false,
+        forceMemberId: true,
+      }
     case "PAYER_ERROR":
       return {
         code: "PAYER_ERROR",

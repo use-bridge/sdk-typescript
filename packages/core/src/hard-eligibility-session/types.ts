@@ -88,6 +88,7 @@ export type HardEligibilityErrorCode =
   | "NOT_FOUND_NAME" // Patient wasn't, hints at name mismatch
   | "NOT_FOUND_MEMBER_ID" // Patient wasn't found, hints at Member ID mismatch
   | "NOT_FOUND_DATE_OF_BIRTH" // Patient wasn't found, hints at Date of Birth mismatch
+  | "CONFLICT_MEMBER_ID" // Multiple insurance plans found, Member ID required to disambiguate
   | "PAYER_ERROR" // Payer returned server error, retry
   | "SERVER_ERROR" // Unexpected server error, retry
   | "TIMEOUT" // Payer timed out
